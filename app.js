@@ -213,7 +213,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     size: file.size,
                     type: file.type,
                     rotation: 0,
-                    dataUrl: e.target.result
+                    originalDataUrl: e.target.result,
+                    dataUrl: e.target.result,
+                    cropPoints: null,
+                    activeFilter: 'original'
                 });
                 loadedCount++;
 
@@ -264,6 +267,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
                 <div class="item-controls">
+                    <button class="btn-icon btn-edit" title="Perbaiki Sudut & Crop Dokumen">
+                        <i data-lucide="crop"></i>
+                    </button>
                     <button class="btn-icon btn-rotate" title="Putar 90°">
                         <i data-lucide="rotate-cw"></i>
                     </button>
@@ -279,6 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
 
+            item.querySelector('.btn-edit').addEventListener('click', () => openCropEditor(img.id));
             item.querySelector('.btn-rotate').addEventListener('click', () => rotateImage(img.id));
             item.querySelector('.btn-move-up').addEventListener('click', () => moveImage(index, index - 1));
             item.querySelector('.btn-move-down').addEventListener('click', () => moveImage(index, index + 1));
@@ -1055,5 +1062,625 @@ document.addEventListener('DOMContentLoaded', () => {
             btnConvertOffice.innerHTML = originalBtnText;
             lucide.createIcons();
         }
+    });
+
+
+    // --- 5. MODULE: CROP & PERSPECTIVE TRANSFORM (DOCUMENT SCANNER) ---
+    // State Variables for Crop Modal
+    let activeEditorImageId = null;
+    let editorImgElement = null;
+    let editorFilter = 'original';
+    let editorCorners = {
+        tl: { x: 0, y: 0 },
+        tr: { x: 0, y: 0 },
+        br: { x: 0, y: 0 },
+        bl: { x: 0, y: 0 }
+    };
+    let activeHandle = null;
+
+    // DOM Elements
+    const cropModal = document.getElementById('crop-modal');
+    const btnCropModalClose = document.getElementById('btn-crop-modal-close');
+    const btnEditorCancel = document.getElementById('btn-editor-cancel');
+    const btnEditorSave = document.getElementById('btn-editor-save');
+    const btnEditorRotate = document.getElementById('btn-editor-rotate');
+    const btnEditorReset = document.getElementById('btn-editor-reset');
+    const filterButtons = document.querySelectorAll('.btn-filter');
+    const cropCanvas = document.getElementById('crop-source-canvas');
+    const cropCtx = cropCanvas.getContext('2d');
+    const cropCanvasContainer = document.getElementById('crop-canvas-container');
+    const magnifierLens = document.getElementById('magnifier-lens');
+    const magnifierCanvas = document.getElementById('magnifier-canvas');
+
+    const handleElElements = {
+        tl: document.getElementById('handle-tl'),
+        tr: document.getElementById('handle-tr'),
+        br: document.getElementById('handle-br'),
+        bl: document.getElementById('handle-bl')
+    };
+
+    // Matrix Solver & Homography Algorithms
+    function solveLinearSystem(A, B) {
+        const n = B.length;
+        for (let i = 0; i < n; i++) {
+            let maxRow = i;
+            for (let k = i + 1; k < n; k++) {
+                if (Math.abs(A[k][i]) > Math.abs(A[maxRow][i])) {
+                    maxRow = k;
+                }
+            }
+            const tempRow = A[i];
+            A[i] = A[maxRow];
+            A[maxRow] = tempRow;
+            
+            const tempVal = B[i];
+            B[i] = B[maxRow];
+            B[maxRow] = tempVal;
+            
+            const pivot = A[i][i];
+            if (Math.abs(pivot) < 1e-10) return null;
+            
+            for (let k = i + 1; k < n; k++) {
+                const factor = A[k][i] / pivot;
+                for (let j = i; j < n; j++) {
+                    A[k][j] -= factor * A[i][j];
+                }
+                B[k] -= factor * B[i];
+            }
+        }
+        
+        const x = new Array(n).fill(0);
+        for (let i = n - 1; i >= 0; i--) {
+            let sum = 0;
+            for (let j = i + 1; j < n; j++) {
+                sum += A[i][j] * x[j];
+            }
+            x[i] = (B[i] - sum) / A[i][i];
+        }
+        return x;
+    }
+
+    function getPerspectiveCoefficients(srcPoints, dstPoints) {
+        const A = [];
+        const B = [];
+        for (let i = 0; i < 4; i++) {
+            const u = dstPoints[i].x;
+            const v = dstPoints[i].y;
+            const x = srcPoints[i].x;
+            const y = srcPoints[i].y;
+            A.push([u, v, 1, 0, 0, 0, -u * x, -v * x]);
+            B.push(x);
+            A.push([0, 0, 0, u, v, 1, -u * y, -v * y]);
+            B.push(y);
+        }
+        return solveLinearSystem(A, B);
+    }
+
+    function warpPerspectiveBilinear(srcImageData, dstWidth, dstHeight, h) {
+        const srcWidth = srcImageData.width;
+        const srcHeight = srcImageData.height;
+        const srcData = srcImageData.data;
+        
+        const dstImageData = new ImageData(dstWidth, dstHeight);
+        const dstData = dstImageData.data;
+        
+        for (let v = 0; v < dstHeight; v++) {
+            for (let u = 0; u < dstWidth; u++) {
+                const denom = h[6] * u + h[7] * v + 1;
+                const x = (h[0] * u + h[1] * v + h[2]) / denom;
+                const y = (h[3] * u + h[4] * v + h[5]) / denom;
+                
+                const x0 = Math.floor(x);
+                const x1 = x0 + 1;
+                const y0 = Math.floor(y);
+                const y1 = y0 + 1;
+                
+                const dstIdx = (v * dstWidth + u) * 4;
+                
+                if (x0 >= 0 && x1 < srcWidth && y0 >= 0 && y1 < srcHeight) {
+                    const wx1 = x - x0;
+                    const wx0 = 1 - wx1;
+                    const wy1 = y - y0;
+                    const wy0 = 1 - wy1;
+                    
+                    const idx00 = (y0 * srcWidth + x0) * 4;
+                    const idx01 = (y0 * srcWidth + x1) * 4;
+                    const idx10 = (y1 * srcWidth + x0) * 4;
+                    const idx11 = (y1 * srcWidth + x1) * 4;
+                    
+                    for (let c = 0; c < 4; c++) {
+                        dstData[dstIdx + c] = 
+                            wy0 * (wx0 * srcData[idx00 + c] + wx1 * srcData[idx01 + c]) +
+                            wy1 * (wx0 * srcData[idx10 + c] + wx1 * srcData[idx11 + c]);
+                    }
+                } else {
+                    // Out of bounds: fill with clean white for scanned documents
+                    dstData[dstIdx] = 255;
+                    dstData[dstIdx + 1] = 255;
+                    dstData[dstIdx + 2] = 255;
+                    dstData[dstIdx + 3] = 255; // Opaque white
+                }
+            }
+        }
+        return dstImageData;
+    }
+
+    function applyFilterToImageData(imageData, filterType) {
+        const data = imageData.data;
+        const len = data.length;
+        
+        if (filterType === 'original') return;
+        
+        if (filterType === 'grayscale') {
+            for (let i = 0; i < len; i += 4) {
+                const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+                data[i] = data[i + 1] = data[i + 2] = gray;
+            }
+        } else if (filterType === 'magic') {
+            // Magic color: boost contrast (C=35) and brightness (B=15)
+            const contrast = 35;
+            const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+            const brightness = 15;
+            
+            for (let i = 0; i < len; i += 4) {
+                for (let c = 0; c < 3; c++) {
+                    let val = data[i + c];
+                    val = factor * (val - 128) + 128 + brightness;
+                    data[i + c] = Math.max(0, Math.min(255, val));
+                }
+            }
+        } else if (filterType === 'bw') {
+            // High contrast B&W Scan photocopy look
+            const contrast = 100;
+            const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+            
+            for (let i = 0; i < len; i += 4) {
+                const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+                let val = factor * (gray - 125) + 128;
+                val = val > 128 ? 255 : (val < 70 ? 0 : val);
+                data[i] = data[i + 1] = data[i + 2] = Math.max(0, Math.min(255, val));
+            }
+        }
+    }
+
+    function rotateImageDataUrl(dataUrl, rotationAngle) {
+        return new Promise((resolve) => {
+            if (rotationAngle === 0) {
+                resolve(dataUrl);
+                return;
+            }
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                if (rotationAngle === 90 || rotationAngle === 270) {
+                    canvas.width = img.naturalHeight;
+                    canvas.height = img.naturalWidth;
+                } else {
+                    canvas.width = img.naturalWidth;
+                    canvas.height = img.naturalHeight;
+                }
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.rotate((rotationAngle * Math.PI) / 180);
+                ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+                resolve(canvas.toDataURL('image/jpeg', 0.95));
+            };
+            img.src = dataUrl;
+        });
+    }
+
+    // Draggable Pins Overlay & Rendering
+    function updateHandlePositions() {
+        for (const [corner, p] of Object.entries(editorCorners)) {
+            const el = handleElElements[corner];
+            if (el) {
+                el.style.left = `${p.x}px`;
+                el.style.top = `${p.y}px`;
+            }
+        }
+        drawEditorOverlay();
+    }
+
+    function drawEditorOverlay() {
+        if (!editorImgElement) return;
+        cropCtx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
+        cropCtx.drawImage(editorImgElement, 0, 0, cropCanvas.width, cropCanvas.height);
+        
+        // Quad highlight outline
+        cropCtx.fillStyle = 'rgba(99, 102, 241, 0.2)';
+        cropCtx.strokeStyle = '#6366f1';
+        cropCtx.lineWidth = 3;
+        
+        cropCtx.beginPath();
+        cropCtx.moveTo(editorCorners.tl.x, editorCorners.tl.y);
+        cropCtx.lineTo(editorCorners.tr.x, editorCorners.tr.y);
+        cropCtx.lineTo(editorCorners.br.x, editorCorners.br.y);
+        cropCtx.lineTo(editorCorners.bl.x, editorCorners.bl.y);
+        cropCtx.closePath();
+        cropCtx.fill();
+        cropCtx.stroke();
+    }
+
+    function updateMagnifier(e) {
+        if (!activeHandle || !editorImgElement) return;
+        
+        const handleX = editorCorners[activeHandle].x;
+        const handleY = editorCorners[activeHandle].y;
+        
+        magnifierLens.style.display = 'block';
+        magnifierLens.style.left = `${handleX}px`;
+        magnifierLens.style.top = `${handleY - 80}px`;
+        
+        const magCtx = magnifierCanvas.getContext('2d');
+        magCtx.imageSmoothingEnabled = false;
+        magCtx.clearRect(0, 0, 120, 120);
+        
+        const scaleX = editorImgElement.naturalWidth / cropCanvas.width;
+        const scaleY = editorImgElement.naturalHeight / cropCanvas.height;
+        const imgX = handleX * scaleX;
+        const imgY = handleY * scaleY;
+        
+        const zoom = 4;
+        const sW = 120 / zoom;
+        const sH = 120 / zoom;
+        const sX = imgX - sW / 2;
+        const sY = imgY - sH / 2;
+        
+        magCtx.drawImage(editorImgElement, sX, sY, sW, sH, 0, 0, 120, 120);
+        
+        // Red crosshair in lens center
+        magCtx.strokeStyle = '#ef4444';
+        magCtx.lineWidth = 1.5;
+        magCtx.beginPath();
+        magCtx.moveTo(0, 60);
+        magCtx.lineTo(120, 60);
+        magCtx.moveTo(60, 0);
+        magCtx.lineTo(60, 120);
+        magCtx.stroke();
+    }
+
+    function dragHandle(e) {
+        if (!activeHandle) return;
+        
+        let clientX, clientY;
+        if (e.touches && e.touches.length > 0) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+        
+        const rect = cropCanvasContainer.getBoundingClientRect();
+        let x = clientX - rect.left;
+        let y = clientY - rect.top;
+        
+        x = Math.max(0, Math.min(cropCanvas.width, x));
+        y = Math.max(0, Math.min(cropCanvas.height, y));
+        
+        editorCorners[activeHandle].x = x;
+        editorCorners[activeHandle].y = y;
+        
+        handleElElements[activeHandle].style.left = `${x}px`;
+        handleElElements[activeHandle].style.top = `${y}px`;
+        
+        drawEditorOverlay();
+        updateMagnifier(e);
+    }
+
+    // Bind interaction events for handles
+    Object.keys(handleElElements).forEach(corner => {
+        const handle = handleElElements[corner];
+        if (!handle) return;
+        
+        const startDrag = (e) => {
+            e.preventDefault();
+            activeHandle = corner;
+            handle.classList.add('active');
+            updateMagnifier(e);
+        };
+        
+        handle.addEventListener('mousedown', startDrag);
+        handle.addEventListener('touchstart', startDrag, { passive: false });
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (activeHandle) dragHandle(e);
+    });
+    
+    window.addEventListener('touchmove', (e) => {
+        if (activeHandle) {
+            e.preventDefault();
+            dragHandle(e);
+        }
+    }, { passive: false });
+    
+    const stopDrag = () => {
+        if (activeHandle) {
+            handleElElements[activeHandle].classList.remove('active');
+            activeHandle = null;
+            magnifierLens.style.display = 'none';
+        }
+    };
+    
+    window.addEventListener('mouseup', stopDrag);
+    window.addEventListener('touchend', stopDrag);
+
+    // Open Crop Modal
+    function openCropEditor(imageId) {
+        const imgData = images.find(img => img.id === imageId);
+        if (!imgData) return;
+        
+        // Auto rotate the image if it has accumulated rotation steps in the list
+        if (imgData.rotation !== 0) {
+            rotateImageDataUrl(imgData.originalDataUrl, imgData.rotation).then(rotatedUrl => {
+                imgData.originalDataUrl = rotatedUrl;
+                imgData.dataUrl = rotatedUrl;
+                imgData.rotation = 0;
+                renderImages();
+                openCropEditor(imageId);
+            });
+            return;
+        }
+
+        activeEditorImageId = imageId;
+        editorFilter = imgData.activeFilter || 'original';
+        
+        btnEditorSave.disabled = true;
+        
+        filterButtons.forEach(btn => {
+            if (btn.getAttribute('data-filter') === editorFilter) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+        
+        editorImgElement = new Image();
+        editorImgElement.onload = () => {
+            const imgW = editorImgElement.naturalWidth;
+            const imgH = editorImgElement.naturalHeight;
+            
+            // Constrain editor sizes
+            const workWidth = Math.min(window.innerWidth * 0.95 - 300, 560);
+            const workHeight = Math.min(window.innerHeight * 0.5, 420);
+            
+            let canvasW = workWidth;
+            let canvasH = workWidth * (imgH / imgW);
+            
+            if (canvasH > workHeight) {
+                canvasH = workHeight;
+                canvasW = workHeight * (imgW / imgH);
+            }
+            
+            cropCanvas.width = canvasW;
+            cropCanvas.height = canvasH;
+            cropCanvasContainer.style.width = `${canvasW}px`;
+            cropCanvasContainer.style.height = `${canvasH}px`;
+            
+            if (imgData.cropPoints) {
+                editorCorners = {
+                    tl: { x: imgData.cropPoints.tl.x * canvasW, y: imgData.cropPoints.tl.y * canvasH },
+                    tr: { x: imgData.cropPoints.tr.x * canvasW, y: imgData.cropPoints.tr.y * canvasH },
+                    br: { x: imgData.cropPoints.br.x * canvasW, y: imgData.cropPoints.br.y * canvasH },
+                    bl: { x: imgData.cropPoints.bl.x * canvasW, y: imgData.cropPoints.bl.y * canvasH }
+                };
+            } else {
+                const padW = canvasW * 0.05;
+                const padH = canvasH * 0.05;
+                editorCorners = {
+                    tl: { x: padW, y: padH },
+                    tr: { x: canvasW - padW, y: padH },
+                    br: { x: canvasW - padW, y: canvasH - padH },
+                    bl: { x: padW, y: canvasH - padH }
+                };
+            }
+            
+            updateHandlePositions();
+            cropModal.style.display = 'flex';
+            btnEditorSave.disabled = false;
+            lucide.createIcons();
+        };
+        
+        editorImgElement.src = imgData.originalDataUrl;
+    }
+
+    // Sidebar and Actions Handlers
+    const closeCropModal = () => {
+        cropModal.style.display = 'none';
+        activeEditorImageId = null;
+        editorImgElement = null;
+    };
+
+    btnCropModalClose.addEventListener('click', closeCropModal);
+    btnEditorCancel.addEventListener('click', closeCropModal);
+
+    btnEditorReset.addEventListener('click', () => {
+        if (!editorImgElement) return;
+        const canvasW = cropCanvas.width;
+        const canvasH = cropCanvas.height;
+        const padW = canvasW * 0.05;
+        const padH = canvasH * 0.05;
+        
+        editorCorners = {
+            tl: { x: padW, y: padH },
+            tr: { x: canvasW - padW, y: padH },
+            br: { x: canvasW - padW, y: canvasH - padH },
+            bl: { x: padW, y: canvasH - padH }
+        };
+        updateHandlePositions();
+    });
+
+    btnEditorRotate.addEventListener('click', async () => {
+        if (!editorImgElement || !activeEditorImageId) return;
+        
+        btnEditorRotate.disabled = true;
+        const originalHtml = btnEditorRotate.innerHTML;
+        btnEditorRotate.innerHTML = `<div class="loading-spinner" style="width:1rem;height:1rem;margin:0;"></div>`;
+        
+        try {
+            const rotatedUrl = await rotateImageDataUrl(editorImgElement.src, 90);
+            
+            const imgData = images.find(img => img.id === activeEditorImageId);
+            if (imgData) {
+                imgData.originalDataUrl = rotatedUrl;
+                imgData.cropPoints = null; // reset corners to default
+            }
+            
+            editorImgElement = new Image();
+            editorImgElement.onload = () => {
+                const imgW = editorImgElement.naturalWidth;
+                const imgH = editorImgElement.naturalHeight;
+                
+                const workWidth = Math.min(window.innerWidth * 0.95 - 300, 560);
+                const workHeight = Math.min(window.innerHeight * 0.5, 420);
+                
+                let newW = workWidth;
+                let newH = workWidth * (imgH / imgW);
+                if (newH > workHeight) {
+                    newH = workHeight;
+                    newW = workHeight * (imgW / imgH);
+                }
+                
+                cropCanvas.width = newW;
+                cropCanvas.height = newH;
+                cropCanvasContainer.style.width = `${newW}px`;
+                cropCanvasContainer.style.height = `${newH}px`;
+                
+                const padW = newW * 0.05;
+                const padH = newH * 0.05;
+                editorCorners = {
+                    tl: { x: padW, y: padH },
+                    tr: { x: newW - padW, y: padH },
+                    br: { x: newW - padW, y: newH - padH },
+                    bl: { x: padW, y: newH - padH }
+                };
+                
+                updateHandlePositions();
+                btnEditorRotate.disabled = false;
+                btnEditorRotate.innerHTML = originalHtml;
+                lucide.createIcons();
+            };
+            editorImgElement.src = rotatedUrl;
+        } catch (err) {
+            console.error(err);
+            btnEditorRotate.disabled = false;
+            btnEditorRotate.innerHTML = originalHtml;
+            showToast("Gagal memutar gambar.");
+        }
+    });
+
+    filterButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            filterButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            editorFilter = btn.getAttribute('data-filter');
+        });
+    });
+
+    btnEditorSave.addEventListener('click', () => {
+        if (!editorImgElement || !activeEditorImageId) return;
+        
+        const imgData = images.find(img => img.id === activeEditorImageId);
+        if (!imgData) return;
+        
+        const originalBtnContent = btnEditorSave.innerHTML;
+        btnEditorSave.disabled = true;
+        btnEditorSave.innerHTML = `<div class="loading-spinner" style="width: 1.25rem; height: 1.25rem; margin: 0 0.5rem 0 0;"></div> Memproses...`;
+        
+        setTimeout(() => {
+            try {
+                const canvasW = cropCanvas.width;
+                const canvasH = cropCanvas.height;
+                const natW = editorImgElement.naturalWidth;
+                const natH = editorImgElement.naturalHeight;
+                
+                const scaleX = natW / canvasW;
+                const scaleY = natH / canvasH;
+                
+                const tl_orig = { x: editorCorners.tl.x * scaleX, y: editorCorners.tl.y * scaleY };
+                const tr_orig = { x: editorCorners.tr.x * scaleX, y: editorCorners.tr.y * scaleY };
+                const br_orig = { x: editorCorners.br.x * scaleX, y: editorCorners.br.y * scaleY };
+                const bl_orig = { x: editorCorners.bl.x * scaleX, y: editorCorners.bl.y * scaleY };
+                
+                // Save normalized coords for non-destructive re-edit
+                imgData.cropPoints = {
+                    tl: { x: editorCorners.tl.x / canvasW, y: editorCorners.tl.y / canvasH },
+                    tr: { x: editorCorners.tr.x / canvasW, y: editorCorners.tr.y / canvasH },
+                    br: { x: editorCorners.br.x / canvasW, y: editorCorners.br.y / canvasH },
+                    bl: { x: editorCorners.bl.x / canvasW, y: editorCorners.bl.y / canvasH }
+                };
+                imgData.activeFilter = editorFilter;
+                
+                // Estimate size of output image
+                const dist = (p1, p2) => Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+                const widthTop = dist(tl_orig, tr_orig);
+                const widthBottom = dist(bl_orig, br_orig);
+                const destW = Math.round(Math.max(widthTop, widthBottom));
+                
+                const heightLeft = dist(tl_orig, bl_orig);
+                const heightRight = dist(tr_orig, br_orig);
+                const destH = Math.round(Math.max(heightLeft, heightRight));
+                
+                // Limit dimensions to 3000px to avoid memory overflow
+                const limit = 3000;
+                let finalW = destW;
+                let finalH = destH;
+                if (finalW > limit || finalH > limit) {
+                    const aspect = finalW / finalH;
+                    if (finalW > finalH) {
+                        finalW = limit;
+                        finalH = Math.round(limit / aspect);
+                    } else {
+                        finalH = limit;
+                        finalW = Math.round(limit * aspect);
+                    }
+                }
+                
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = natW;
+                tempCanvas.height = natH;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(editorImgElement, 0, 0);
+                const srcImgData = tempCtx.getImageData(0, 0, natW, natH);
+                
+                const destPoints = [
+                    { x: 0, y: 0 },
+                    { x: finalW, y: 0 },
+                    { x: finalW, y: finalH },
+                    { x: 0, y: finalH }
+                ];
+                const srcPoints = [tl_orig, tr_orig, br_orig, bl_orig];
+                
+                const h = getPerspectiveCoefficients(srcPoints, destPoints);
+                if (!h) {
+                    throw new Error("Persamaan matriks singular. Pastikan 4 titik tidak sejajar.");
+                }
+                
+                let warpedImgData = warpPerspectiveBilinear(srcImgData, finalW, finalH, h);
+                applyFilterToImageData(warpedImgData, editorFilter);
+                
+                const outCanvas = document.createElement('canvas');
+                outCanvas.width = finalW;
+                outCanvas.height = finalH;
+                const outCtx = outCanvas.getContext('2d');
+                outCtx.putImageData(warpedImgData, 0, 0);
+                
+                const croppedUrl = outCanvas.toDataURL('image/jpeg', 0.95);
+                imgData.dataUrl = croppedUrl;
+                imgData.size = Math.round(croppedUrl.length * 0.75);
+                
+                renderImages();
+                closeCropModal();
+                showToast("Dokumen berhasil diselaraskan & ditingkatkan!");
+            } catch (err) {
+                console.error(err);
+                showToast(err.message || "Gagal memotong dokumen.");
+            } finally {
+                btnEditorSave.disabled = false;
+                btnEditorSave.innerHTML = originalBtnContent;
+                lucide.createIcons();
+            }
+        }, 50);
     });
 });

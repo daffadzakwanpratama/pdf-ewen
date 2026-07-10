@@ -495,6 +495,92 @@
             <span id="toast-message">Notifikasi</span>
         </div>
 
+        <!-- Modal: Crop & Document Perspective Transform -->
+        <div id="crop-modal" class="modal-overlay" style="display: none;">
+            <div class="modal-container">
+                <div class="modal-header">
+                    <div class="modal-title-row" style="display: flex; align-items: center; gap: 0.75rem;">
+                        <i data-lucide="crop" class="tool-title-icon yellow" style="stroke-width: 2.5; width: 1.5rem; height: 1.5rem; color: #fbbf24;"></i>
+                        <h2 style="font-size: 1.25rem; font-weight: 700; margin: 0; color: white;">Sesuaikan Sudut & Potong Dokumen</h2>
+                    </div>
+                    <button id="btn-crop-modal-close" class="btn-icon btn-settings" title="Tutup" style="margin-left: auto; border: none; background: transparent; cursor: pointer;">
+                        <i data-lucide="x" style="color: var(--text-secondary); width: 1.5rem; height: 1.5rem;"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <!-- Left: Editor workspace -->
+                    <div class="editor-workspace">
+                        <div class="canvas-container" id="crop-canvas-container">
+                            <canvas id="crop-source-canvas"></canvas>
+                            <!-- Interactive 4 handles -->
+                            <div id="handle-tl" class="corner-handle" data-corner="tl">
+                                <div class="handle-inner"></div>
+                            </div>
+                            <div id="handle-tr" class="corner-handle" data-corner="tr">
+                                <div class="handle-inner"></div>
+                            </div>
+                            <div id="handle-br" class="corner-handle" data-corner="br">
+                                <div class="handle-inner"></div>
+                            </div>
+                            <div id="handle-bl" class="corner-handle" data-corner="bl">
+                                <div class="handle-inner"></div>
+                            </div>
+                            <!-- Magnifier glass lens overlay -->
+                            <div id="magnifier-lens" class="magnifier-lens" style="display: none;">
+                                <canvas id="magnifier-canvas" width="120" height="120"></canvas>
+                            </div>
+                        </div>
+                        <div class="editor-help-text">
+                            <i data-lucide="info"></i>
+                            <span>Tarik 4 bulatan di sudut untuk menyelaraskan tepi dokumen agar tegak lurus dan presisi.</span>
+                        </div>
+                    </div>
+                    <!-- Right: Tool settings & action sidebar -->
+                    <div class="editor-sidebar">
+                        <div class="sidebar-section">
+                            <h3>Filter Dokumen</h3>
+                            <div class="filter-options-grid">
+                                <button class="btn-filter active" data-filter="original">
+                                    <div class="filter-preview-box filter-original"></div>
+                                    <span>Asli</span>
+                                </button>
+                                <button class="btn-filter" data-filter="magic">
+                                    <div class="filter-preview-box filter-magic"></div>
+                                    <span>Magic Color</span>
+                                </button>
+                                <button class="btn-filter" data-filter="bw">
+                                    <div class="filter-preview-box filter-bw"></div>
+                                    <span>B&W Scan</span>
+                                </button>
+                                <button class="btn-filter" data-filter="grayscale">
+                                    <div class="filter-preview-box filter-grayscale"></div>
+                                    <span>Grayscale</span>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="sidebar-section" style="margin-top: 1.5rem;">
+                            <h3>Aksi Dokumen</h3>
+                            <div class="sidebar-actions-row">
+                                <button id="btn-editor-rotate" class="btn btn-secondary btn-sm" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem;">
+                                    <i data-lucide="rotate-cw" style="width: 1rem; height: 1rem;"></i> Putar 90&deg;
+                                </button>
+                                <button id="btn-editor-reset" class="btn btn-danger-outline btn-sm" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem;">
+                                    <i data-lucide="refresh-ccw" style="width: 1rem; height: 1rem;"></i> Reset Sudut
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="btn-editor-cancel" class="btn btn-secondary">Batal</button>
+                    <button id="btn-editor-save" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i data-lucide="check" style="width: 1.25rem; height: 1.25rem;"></i> Simpan Perubahan
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Footer -->
         <footer class="app-footer">
             <p>&copy; 2026 PicToPDF Suite. Dibuat dengan cinta untuk keamanan data Anda. Semua pemrosesan lokal dan CloudConvert API.</p>
