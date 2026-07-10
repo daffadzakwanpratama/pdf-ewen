@@ -1077,6 +1077,7 @@ document.addEventListener('DOMContentLoaded', () => {
         bl: { x: 0, y: 0 }
     };
     let activeHandle = null;
+    let editorZoomLevel = 1.0;
 
     // Helper to calculate workspace-scaled dimensions for mobile & desktop dynamically
     function getEditorDimensions(imgW, imgH) {
@@ -1110,6 +1111,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const cropCanvasContainer = document.getElementById('crop-canvas-container');
     const magnifierLens = document.getElementById('magnifier-lens');
     const magnifierCanvas = document.getElementById('magnifier-canvas');
+    const btnEditorZoom = document.getElementById('btn-editor-zoom');
+    const zoomLevelBadge = document.getElementById('zoom-level-badge');
 
     const handleElElements = {
         tl: document.getElementById('handle-tl'),
@@ -1444,6 +1447,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         activeEditorImageId = imageId;
         editorFilter = imgData.activeFilter || 'original';
+        editorZoomLevel = 1.0;
+        if (zoomLevelBadge) {
+            zoomLevelBadge.textContent = '1x';
+            const zoomIcon = btnEditorZoom.querySelector('i');
+            if (zoomIcon) zoomIcon.setAttribute('data-lucide', 'zoom-in');
+        }
         
         btnEditorSave.disabled = true;
         
@@ -1503,6 +1512,12 @@ document.addEventListener('DOMContentLoaded', () => {
         cropModal.style.display = 'none';
         activeEditorImageId = null;
         editorImgElement = null;
+        editorZoomLevel = 1.0;
+        if (zoomLevelBadge) {
+            zoomLevelBadge.textContent = '1x';
+            const zoomIcon = btnEditorZoom.querySelector('i');
+            if (zoomIcon) zoomIcon.setAttribute('data-lucide', 'zoom-in');
+        }
     };
 
     btnCropModalClose.addEventListener('click', closeCropModal);
@@ -1522,6 +1537,51 @@ document.addEventListener('DOMContentLoaded', () => {
             bl: { x: padW, y: canvasH - padH }
         };
         updateHandlePositions();
+    });
+
+    btnEditorZoom.addEventListener('click', () => {
+        if (!editorImgElement) return;
+        
+        let nextZoom = 1.0;
+        if (editorZoomLevel === 1.0) nextZoom = 1.5;
+        else if (editorZoomLevel === 1.5) nextZoom = 2.0;
+        else nextZoom = 1.0;
+        
+        const ratio = nextZoom / editorZoomLevel;
+        editorZoomLevel = nextZoom;
+        
+        zoomLevelBadge.textContent = `${editorZoomLevel}x`;
+        
+        const prevW = cropCanvas.width;
+        const prevH = cropCanvas.height;
+        
+        const newW = prevW * ratio;
+        const newH = prevH * ratio;
+        
+        cropCanvas.width = newW;
+        cropCanvas.height = newH;
+        
+        cropCanvasContainer.style.width = `${newW}px`;
+        cropCanvasContainer.style.height = `${newH}px`;
+        
+        // Scale handle positions
+        for (const corner of Object.keys(editorCorners)) {
+            editorCorners[corner].x *= ratio;
+            editorCorners[corner].y *= ratio;
+        }
+        
+        updateHandlePositions();
+        
+        // Change icon based on zoom
+        const zoomIcon = btnEditorZoom.querySelector('i');
+        if (zoomIcon) {
+            if (editorZoomLevel > 1.0) {
+                zoomIcon.setAttribute('data-lucide', 'zoom-out');
+            } else {
+                zoomIcon.setAttribute('data-lucide', 'zoom-in');
+            }
+        }
+        lucide.createIcons();
     });
 
     btnEditorRotate.addEventListener('click', async () => {
