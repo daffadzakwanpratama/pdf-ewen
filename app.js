@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const imageToPdfView = document.getElementById('image-to-pdf-view');
     const pdfToImageView = document.getElementById('pdf-to-image-view');
     const officeConverterView = document.getElementById('office-converter-view');
-    
+
     // Settings elements
     const btnToggleSettings = document.getElementById('btn-toggle-settings');
     const globalSettingsPanel = document.getElementById('global-settings-panel');
@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnToggleSettings.addEventListener('click', () => {
         const isHidden = globalSettingsPanel.style.display === 'none';
         globalSettingsPanel.style.display = isHidden ? 'block' : 'none';
-        
+
         // Toggle settings button icon rotation / focus visually
         if (isHidden) {
             globalCloudConvertKeyInput.focus();
@@ -56,10 +56,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateOfficeCardsState() {
         const apiKey = globalCloudConvertKeyInput.value.trim();
         const officeCards = document.querySelectorAll('.office-card');
-        
+
         officeCards.forEach(card => {
             const badge = card.querySelector('.badge');
-            
+
             if (apiKey) {
                 // Active state
                 card.classList.remove('card-inactive');
@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.card').forEach(card => {
         card.addEventListener('click', () => {
             const tool = card.getAttribute('data-tool');
-            
+
             // Check if it is an Office card and currently inactive
             if (card.classList.contains('office-card') && card.classList.contains('card-inactive')) {
                 showToast("Masukkan CloudConvert API Key di ikon gerigi atas untuk mengaktifkan fitur ini.");
@@ -132,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             // Show dashboard
             dashboardView.style.display = 'flex';
-            
+
             // Clear inputs and states on return to avoid memory footprint
             clearImageToPdfState();
             clearPdfToImageState();
@@ -153,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const imageCountText = document.getElementById('image-count');
     const btnClear = document.getElementById('btn-clear');
     const btnConvert = document.getElementById('btn-convert');
-    
+
     const conversionModeSelect = document.getElementById('conversion-mode');
     const pageSizeSelect = document.getElementById('page-size');
     const orientationGroup = document.getElementById('orientation-group');
@@ -246,7 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
         previewSection.style.display = 'flex';
         btnConvert.disabled = false;
         imageCountText.textContent = images.length;
-        
+
         const scrollPos = imageList.scrollTop;
         imageList.innerHTML = '';
 
@@ -349,7 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
             img.onload = () => {
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
-                
+
                 if (rotationAngle === 90 || rotationAngle === 270) {
                     canvas.width = img.naturalHeight;
                     canvas.height = img.naturalWidth;
@@ -357,11 +357,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     canvas.width = img.naturalWidth;
                     canvas.height = img.naturalHeight;
                 }
-                
+
                 ctx.translate(canvas.width / 2, canvas.height / 2);
                 ctx.rotate((rotationAngle * Math.PI) / 180);
                 ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
-                
+
                 resolve({
                     dataUrl: canvas.toDataURL('image/jpeg', quality),
                     width: canvas.width,
@@ -395,7 +395,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 for (let i = 0; i < images.length; i++) {
                     const img = images[i];
                     const processed = await processImage(img.dataUrl, img.rotation, qualityOpt);
-                    
+
                     let pWidth, pHeight, scaleW, scaleH;
                     let x = margin, y = margin;
                     let pageOrientation = orientationOpt;
@@ -470,7 +470,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 for (let i = 0; i < images.length; i++) {
                     const img = images[i];
                     const processed = await processImage(img.dataUrl, img.rotation, qualityOpt);
-                    
+
                     let pWidth, pHeight, scaleW, scaleH;
                     let x = margin, y = margin;
 
@@ -542,7 +542,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const pdfPageCount = document.getElementById('pdf-page-count');
     const btnClearPdf = document.getElementById('btn-clear-pdf');
     const pdfPageGrid = document.getElementById('pdf-page-grid');
-    
+
     const jpgQualitySelect = document.getElementById('jpg-quality');
     const pdfRenderScaleSelect = document.getElementById('pdf-render-scale');
     const pdfOutputNameInput = document.getElementById('pdf-output-name');
@@ -593,7 +593,7 @@ document.addEventListener('DOMContentLoaded', () => {
         pdfOutputNameInput.value = `${baseName}-images`;
 
         const reader = new FileReader();
-        reader.onload = async function(e) {
+        reader.onload = async function (e) {
             try {
                 btnConvertPdf.disabled = true;
                 btnConvertPdf.innerHTML = `<div class="loading-spinner"></div> Membuka PDF...`;
@@ -747,20 +747,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const fileInputOffice = document.getElementById('file-input-office');
     const previewSectionOffice = document.getElementById('preview-section-office');
     const btnClearOffice = document.getElementById('btn-clear-office');
-    
+
     const officeToolIcon = document.getElementById('office-tool-icon');
     const officeToolTitle = document.getElementById('office-tool-title');
     const officeDropzoneIcon = document.getElementById('office-dropzone-icon');
     const officeDropzoneText = document.getElementById('office-dropzone-text');
     const officeFileTypes = document.getElementById('office-file-types');
-    
+
     const officePreviewIcon = document.getElementById('office-preview-icon');
     const officeFileName = document.getElementById('office-file-name');
     const officeFileSize = document.getElementById('office-file-size');
-    
+
     const cloudConvertKeyInput = document.getElementById('cloudconvert-key');
     const btnToggleKeyVisibility = document.getElementById('btn-toggle-key-visibility');
-    
+
     const officeTargetFormatInput = document.getElementById('office-target-format');
     const officeOutputNameInput = document.getElementById('office-output-name');
     const officeOutputSuffix = document.getElementById('office-output-suffix');
@@ -790,7 +790,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let extensionsLabel = "Mendukung format file .docx, .doc";
         let acceptValue = ".docx, .doc";
         let dropzoneMsg = "Pilih dokumen Word Anda";
-        
+
         if (tool === 'word-to-pdf') {
             title = "Word to PDF";
             icon = "file-text";
@@ -846,7 +846,7 @@ document.addEventListener('DOMContentLoaded', () => {
         officeDropzoneIcon.setAttribute('data-lucide', icon === 'presentation' ? 'presentation' : (icon === 'sheet' ? 'sheet' : 'file-up'));
         officeDropzoneText.textContent = dropzoneMsg;
         officeFileTypes.textContent = extensionsLabel;
-        
+
         fileInputOffice.accept = acceptValue;
         officeTargetFormatInput.value = currentTargetFormat.toUpperCase();
         officeOutputSuffix.textContent = `.${currentTargetFormat}`;
@@ -900,15 +900,15 @@ document.addEventListener('DOMContentLoaded', () => {
         currentOfficeFile = file;
         officeFileName.textContent = file.name;
         officeFileSize.textContent = formatBytes(file.size);
-        
+
         const dotIdx = file.name.lastIndexOf('.');
         const baseName = dotIdx !== -1 ? file.name.substring(0, dotIdx) : file.name;
         officeOutputNameInput.value = `${baseName}-converted`;
 
         const isPdf = ext === 'pdf';
-        const docIcon = isPdf ? 'file-text' : (['pptx','ppt'].includes(ext) ? 'presentation' : (['xlsx','xls'].includes(ext) ? 'sheet' : 'file-text'));
+        const docIcon = isPdf ? 'file-text' : (['pptx', 'ppt'].includes(ext) ? 'presentation' : (['xlsx', 'xls'].includes(ext) ? 'sheet' : 'file-text'));
         officePreviewIcon.setAttribute('data-lucide', docIcon);
-        
+
         dropzoneOffice.style.display = 'none';
         previewSectionOffice.style.display = 'flex';
         btnConvertOffice.disabled = false;
@@ -965,7 +965,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const jobData = await jobResponse.json();
-        
+
         const importTask = jobData.data.tasks.find(t => t.name === 'import-1');
         const uploadForm = importTask.result.form;
 
@@ -994,13 +994,13 @@ document.addEventListener('DOMContentLoaded', () => {
         while (!exportTaskFinished && loopCount < 60) {
             await new Promise(resolve => setTimeout(resolve, 2500));
             loopCount++;
-            
+
             const taskResponse = await fetch(taskStatusUrl, {
                 headers: {
                     'Authorization': `Bearer ${apiKey}`
                 }
             });
-            
+
             if (!taskResponse.ok) {
                 throw new Error('Gagal memantau status konversi.');
             }
@@ -1034,7 +1034,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const originalBtnText = btnConvertOffice.innerHTML;
         btnConvertOffice.disabled = true;
-        
+
         try {
             const inputExt = currentOfficeFile.name.substring(currentOfficeFile.name.lastIndexOf('.') + 1).toLowerCase();
             const outputExt = currentTargetFormat;
@@ -1077,18 +1077,20 @@ document.addEventListener('DOMContentLoaded', () => {
         bl: { x: 0, y: 0 }
     };
     let activeHandle = null;
-    let editorZoomLevel = 1.0;
+    let editorStep = 1;
+    let warpedImgDataFull = null;
+    let warpedImgDataDisplay = null;
 
     // Helper to calculate workspace-scaled dimensions for mobile & desktop dynamically
     function getEditorDimensions(imgW, imgH) {
         const parent = cropCanvasContainer.parentElement;
         const workWidth = parent ? parent.clientWidth : 300;
         const workHeight = parent ? parent.clientHeight : 300;
-        
+
         const padding = 16;
         const maxW = Math.max(100, workWidth - padding * 2);
         const maxH = Math.max(100, workHeight - padding * 2);
-        
+
         let w = maxW;
         let h = maxW * (imgH / imgW);
         if (h > maxH) {
@@ -1111,8 +1113,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const cropCanvasContainer = document.getElementById('crop-canvas-container');
     const magnifierLens = document.getElementById('magnifier-lens');
     const magnifierCanvas = document.getElementById('magnifier-canvas');
-    const btnEditorZoom = document.getElementById('btn-editor-zoom');
-    const zoomLevelBadge = document.getElementById('zoom-level-badge');
 
     const handleElElements = {
         tl: document.getElementById('handle-tl'),
@@ -1134,14 +1134,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const tempRow = A[i];
             A[i] = A[maxRow];
             A[maxRow] = tempRow;
-            
+
             const tempVal = B[i];
             B[i] = B[maxRow];
             B[maxRow] = tempVal;
-            
+
             const pivot = A[i][i];
             if (Math.abs(pivot) < 1e-10) return null;
-            
+
             for (let k = i + 1; k < n; k++) {
                 const factor = A[k][i] / pivot;
                 for (let j = i; j < n; j++) {
@@ -1150,7 +1150,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 B[k] -= factor * B[i];
             }
         }
-        
+
         const x = new Array(n).fill(0);
         for (let i = n - 1; i >= 0; i--) {
             let sum = 0;
@@ -1182,36 +1182,36 @@ document.addEventListener('DOMContentLoaded', () => {
         const srcWidth = srcImageData.width;
         const srcHeight = srcImageData.height;
         const srcData = srcImageData.data;
-        
+
         const dstImageData = new ImageData(dstWidth, dstHeight);
         const dstData = dstImageData.data;
-        
+
         for (let v = 0; v < dstHeight; v++) {
             for (let u = 0; u < dstWidth; u++) {
                 const denom = h[6] * u + h[7] * v + 1;
                 const x = (h[0] * u + h[1] * v + h[2]) / denom;
                 const y = (h[3] * u + h[4] * v + h[5]) / denom;
-                
+
                 const x0 = Math.floor(x);
                 const x1 = x0 + 1;
                 const y0 = Math.floor(y);
                 const y1 = y0 + 1;
-                
+
                 const dstIdx = (v * dstWidth + u) * 4;
-                
+
                 if (x0 >= 0 && x1 < srcWidth && y0 >= 0 && y1 < srcHeight) {
                     const wx1 = x - x0;
                     const wx0 = 1 - wx1;
                     const wy1 = y - y0;
                     const wy0 = 1 - wy1;
-                    
+
                     const idx00 = (y0 * srcWidth + x0) * 4;
                     const idx01 = (y0 * srcWidth + x1) * 4;
                     const idx10 = (y1 * srcWidth + x0) * 4;
                     const idx11 = (y1 * srcWidth + x1) * 4;
-                    
+
                     for (let c = 0; c < 4; c++) {
-                        dstData[dstIdx + c] = 
+                        dstData[dstIdx + c] =
                             wy0 * (wx0 * srcData[idx00 + c] + wx1 * srcData[idx01 + c]) +
                             wy1 * (wx0 * srcData[idx10 + c] + wx1 * srcData[idx11 + c]);
                     }
@@ -1230,9 +1230,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function applyFilterToImageData(imageData, filterType) {
         const data = imageData.data;
         const len = data.length;
-        
+
         if (filterType === 'original') return;
-        
+
         if (filterType === 'grayscale') {
             for (let i = 0; i < len; i += 4) {
                 const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
@@ -1243,7 +1243,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const contrast = 35;
             const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
             const brightness = 15;
-            
+
             for (let i = 0; i < len; i += 4) {
                 for (let c = 0; c < 3; c++) {
                     let val = data[i + c];
@@ -1255,7 +1255,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // High contrast B&W Scan photocopy look
             const contrast = 100;
             const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
-            
+
             for (let i = 0; i < len; i += 4) {
                 const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
                 let val = factor * (gray - 125) + 128;
@@ -1307,12 +1307,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!editorImgElement) return;
         cropCtx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
         cropCtx.drawImage(editorImgElement, 0, 0, cropCanvas.width, cropCanvas.height);
-        
+
         // Quad highlight outline
         cropCtx.fillStyle = 'rgba(99, 102, 241, 0.2)';
         cropCtx.strokeStyle = '#6366f1';
         cropCtx.lineWidth = 3;
-        
+
         cropCtx.beginPath();
         cropCtx.moveTo(editorCorners.tl.x, editorCorners.tl.y);
         cropCtx.lineTo(editorCorners.tr.x, editorCorners.tr.y);
@@ -1325,31 +1325,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateMagnifier(e) {
         if (!activeHandle || !editorImgElement) return;
-        
+
         const handleX = editorCorners[activeHandle].x;
         const handleY = editorCorners[activeHandle].y;
-        
+
         magnifierLens.style.display = 'block';
         magnifierLens.style.left = `${handleX}px`;
         magnifierLens.style.top = `${handleY - 80}px`;
-        
+
         const magCtx = magnifierCanvas.getContext('2d');
         magCtx.imageSmoothingEnabled = false;
         magCtx.clearRect(0, 0, 120, 120);
-        
+
         const scaleX = editorImgElement.naturalWidth / cropCanvas.width;
         const scaleY = editorImgElement.naturalHeight / cropCanvas.height;
         const imgX = handleX * scaleX;
         const imgY = handleY * scaleY;
-        
+
         const zoom = 4;
         const sW = 120 / zoom;
         const sH = 120 / zoom;
         const sX = imgX - sW / 2;
         const sY = imgY - sH / 2;
-        
+
         magCtx.drawImage(editorImgElement, sX, sY, sW, sH, 0, 0, 120, 120);
-        
+
         // Red crosshair in lens center
         magCtx.strokeStyle = '#ef4444';
         magCtx.lineWidth = 1.5;
@@ -1363,7 +1363,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function dragHandle(e) {
         if (!activeHandle) return;
-        
+
         let clientX, clientY;
         if (e.touches && e.touches.length > 0) {
             clientX = e.touches[0].clientX;
@@ -1372,20 +1372,20 @@ document.addEventListener('DOMContentLoaded', () => {
             clientX = e.clientX;
             clientY = e.clientY;
         }
-        
+
         const rect = cropCanvasContainer.getBoundingClientRect();
         let x = clientX - rect.left;
         let y = clientY - rect.top;
-        
+
         x = Math.max(0, Math.min(cropCanvas.width, x));
         y = Math.max(0, Math.min(cropCanvas.height, y));
-        
+
         editorCorners[activeHandle].x = x;
         editorCorners[activeHandle].y = y;
-        
+
         handleElElements[activeHandle].style.left = `${x}px`;
         handleElElements[activeHandle].style.top = `${y}px`;
-        
+
         drawEditorOverlay();
         updateMagnifier(e);
     }
@@ -1394,14 +1394,14 @@ document.addEventListener('DOMContentLoaded', () => {
     Object.keys(handleElElements).forEach(corner => {
         const handle = handleElElements[corner];
         if (!handle) return;
-        
+
         const startDrag = (e) => {
             e.preventDefault();
             activeHandle = corner;
             handle.classList.add('active');
             updateMagnifier(e);
         };
-        
+
         handle.addEventListener('mousedown', startDrag);
         handle.addEventListener('touchstart', startDrag, { passive: false });
     });
@@ -1409,14 +1409,14 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('mousemove', (e) => {
         if (activeHandle) dragHandle(e);
     });
-    
+
     window.addEventListener('touchmove', (e) => {
         if (activeHandle) {
             e.preventDefault();
             dragHandle(e);
         }
     }, { passive: false });
-    
+
     const stopDrag = () => {
         if (activeHandle) {
             handleElElements[activeHandle].classList.remove('active');
@@ -1424,7 +1424,7 @@ document.addEventListener('DOMContentLoaded', () => {
             magnifierLens.style.display = 'none';
         }
     };
-    
+
     window.addEventListener('mouseup', stopDrag);
     window.addEventListener('touchend', stopDrag);
 
@@ -1432,7 +1432,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function openCropEditor(imageId) {
         const imgData = images.find(img => img.id === imageId);
         if (!imgData) return;
-        
+
         // Auto rotate the image if it has accumulated rotation steps in the list
         if (imgData.rotation !== 0) {
             rotateImageDataUrl(imgData.originalDataUrl, imgData.rotation).then(rotatedUrl => {
@@ -1444,15 +1444,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             return;
         }
-
         activeEditorImageId = imageId;
         editorFilter = imgData.activeFilter || 'original';
-        editorZoomLevel = 1.0;
-        if (zoomLevelBadge) {
-            zoomLevelBadge.textContent = '1x';
-            const zoomIcon = btnEditorZoom.querySelector('i');
-            if (zoomIcon) zoomIcon.setAttribute('data-lucide', 'zoom-in');
-        }
         
         btnEditorSave.disabled = true;
         
@@ -1499,11 +1492,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             }
             
-            updateHandlePositions();
+            setEditorStep(1);
             btnEditorSave.disabled = false;
-            lucide.createIcons();
-        };
-        
+        };;
+
         editorImgElement.src = imgData.originalDataUrl;
     }
 
@@ -1512,12 +1504,9 @@ document.addEventListener('DOMContentLoaded', () => {
         cropModal.style.display = 'none';
         activeEditorImageId = null;
         editorImgElement = null;
-        editorZoomLevel = 1.0;
-        if (zoomLevelBadge) {
-            zoomLevelBadge.textContent = '1x';
-            const zoomIcon = btnEditorZoom.querySelector('i');
-            if (zoomIcon) zoomIcon.setAttribute('data-lucide', 'zoom-in');
-        }
+        editorStep = 1;
+        warpedImgDataFull = null;
+        warpedImgDataDisplay = null;
     };
 
     btnCropModalClose.addEventListener('click', closeCropModal);
@@ -1529,7 +1518,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const canvasH = cropCanvas.height;
         const padW = canvasW * 0.05;
         const padH = canvasH * 0.05;
-        
+
         editorCorners = {
             tl: { x: padW, y: padH },
             tr: { x: canvasW - padW, y: padH },
@@ -1539,81 +1528,36 @@ document.addEventListener('DOMContentLoaded', () => {
         updateHandlePositions();
     });
 
-    btnEditorZoom.addEventListener('click', () => {
-        if (!editorImgElement) return;
-        
-        let nextZoom = 1.0;
-        if (editorZoomLevel === 1.0) nextZoom = 1.5;
-        else if (editorZoomLevel === 1.5) nextZoom = 2.0;
-        else nextZoom = 1.0;
-        
-        const ratio = nextZoom / editorZoomLevel;
-        editorZoomLevel = nextZoom;
-        
-        zoomLevelBadge.textContent = `${editorZoomLevel}x`;
-        
-        const prevW = cropCanvas.width;
-        const prevH = cropCanvas.height;
-        
-        const newW = prevW * ratio;
-        const newH = prevH * ratio;
-        
-        cropCanvas.width = newW;
-        cropCanvas.height = newH;
-        
-        cropCanvasContainer.style.width = `${newW}px`;
-        cropCanvasContainer.style.height = `${newH}px`;
-        
-        // Scale handle positions
-        for (const corner of Object.keys(editorCorners)) {
-            editorCorners[corner].x *= ratio;
-            editorCorners[corner].y *= ratio;
-        }
-        
-        updateHandlePositions();
-        
-        // Change icon based on zoom
-        const zoomIcon = btnEditorZoom.querySelector('i');
-        if (zoomIcon) {
-            if (editorZoomLevel > 1.0) {
-                zoomIcon.setAttribute('data-lucide', 'zoom-out');
-            } else {
-                zoomIcon.setAttribute('data-lucide', 'zoom-in');
-            }
-        }
-        lucide.createIcons();
-    });
-
     btnEditorRotate.addEventListener('click', async () => {
         if (!editorImgElement || !activeEditorImageId) return;
-        
+
         btnEditorRotate.disabled = true;
         const originalHtml = btnEditorRotate.innerHTML;
         btnEditorRotate.innerHTML = `<div class="loading-spinner" style="width:1rem;height:1rem;margin:0;"></div>`;
-        
+
         try {
             const rotatedUrl = await rotateImageDataUrl(editorImgElement.src, 90);
-            
+
             const imgData = images.find(img => img.id === activeEditorImageId);
             if (imgData) {
                 imgData.originalDataUrl = rotatedUrl;
                 imgData.cropPoints = null; // reset corners to default
             }
-            
+
             editorImgElement = new Image();
             editorImgElement.onload = () => {
                 const imgW = editorImgElement.naturalWidth;
                 const imgH = editorImgElement.naturalHeight;
-                
+
                 const dimensions = getEditorDimensions(imgW, imgH);
                 const newW = dimensions.width;
                 const newH = dimensions.height;
-                
+
                 cropCanvas.width = newW;
                 cropCanvas.height = newH;
                 cropCanvasContainer.style.width = `${newW}px`;
                 cropCanvasContainer.style.height = `${newH}px`;
-                
+
                 const padW = newW * 0.05;
                 const padH = newH * 0.05;
                 editorCorners = {
@@ -1622,7 +1566,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     br: { x: newW - padW, y: newH - padH },
                     bl: { x: padW, y: newH - padH }
                 };
-                
+
                 updateHandlePositions();
                 btnEditorRotate.disabled = false;
                 btnEditorRotate.innerHTML = originalHtml;
@@ -1642,112 +1586,236 @@ document.addEventListener('DOMContentLoaded', () => {
             filterButtons.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             editorFilter = btn.getAttribute('data-filter');
+            if (editorStep === 2) {
+                renderStep2Filter();
+            }
         });
     });
 
-    btnEditorSave.addEventListener('click', () => {
-        if (!editorImgElement || !activeEditorImageId) return;
+    // Wizard Step Controller
+    function setEditorStep(step) {
+        editorStep = step;
+        const container = cropModal.querySelector('.modal-container');
+        const titleEl = document.getElementById('crop-modal-title');
         
-        const imgData = images.find(img => img.id === activeEditorImageId);
-        if (!imgData) return;
-        
-        const originalBtnContent = btnEditorSave.innerHTML;
-        btnEditorSave.disabled = true;
-        btnEditorSave.innerHTML = `<div class="loading-spinner" style="width: 1.25rem; height: 1.25rem; margin: 0 0.5rem 0 0;"></div> Memproses...`;
-        
-        setTimeout(() => {
-            try {
-                const canvasW = cropCanvas.width;
-                const canvasH = cropCanvas.height;
-                const natW = editorImgElement.naturalWidth;
-                const natH = editorImgElement.naturalHeight;
+        if (step === 1) {
+            container.classList.add('step-1');
+            container.classList.remove('step-2');
+            titleEl.textContent = "Sesuaikan Sudut & Potong Dokumen";
+            
+            btnEditorCancel.innerHTML = 'Batal';
+            btnEditorSave.innerHTML = `Lanjut <i data-lucide="arrow-right" style="width: 1.25rem; height: 1.25rem; vertical-align: middle;"></i>`;
+            lucide.createIcons();
+            
+            // Re-render display canvas with original image and handles
+            if (editorImgElement) {
+                const imgW = editorImgElement.naturalWidth;
+                const imgH = editorImgElement.naturalHeight;
+                const dimensions = getEditorDimensions(imgW, imgH);
                 
-                const scaleX = natW / canvasW;
-                const scaleY = natH / canvasH;
+                cropCanvas.width = dimensions.width;
+                cropCanvas.height = dimensions.height;
+                cropCanvasContainer.style.width = `${dimensions.width}px`;
+                cropCanvasContainer.style.height = `${dimensions.height}px`;
                 
-                const tl_orig = { x: editorCorners.tl.x * scaleX, y: editorCorners.tl.y * scaleY };
-                const tr_orig = { x: editorCorners.tr.x * scaleX, y: editorCorners.tr.y * scaleY };
-                const br_orig = { x: editorCorners.br.x * scaleX, y: editorCorners.br.y * scaleY };
-                const bl_orig = { x: editorCorners.bl.x * scaleX, y: editorCorners.bl.y * scaleY };
-                
-                // Save normalized coords for non-destructive re-edit
-                imgData.cropPoints = {
-                    tl: { x: editorCorners.tl.x / canvasW, y: editorCorners.tl.y / canvasH },
-                    tr: { x: editorCorners.tr.x / canvasW, y: editorCorners.tr.y / canvasH },
-                    br: { x: editorCorners.br.x / canvasW, y: editorCorners.br.y / canvasH },
-                    bl: { x: editorCorners.bl.x / canvasW, y: editorCorners.bl.y / canvasH }
-                };
-                imgData.activeFilter = editorFilter;
-                
-                // Estimate size of output image
-                const dist = (p1, p2) => Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
-                const widthTop = dist(tl_orig, tr_orig);
-                const widthBottom = dist(bl_orig, br_orig);
-                const destW = Math.round(Math.max(widthTop, widthBottom));
-                
-                const heightLeft = dist(tl_orig, bl_orig);
-                const heightRight = dist(tr_orig, br_orig);
-                const destH = Math.round(Math.max(heightLeft, heightRight));
-                
-                // Limit dimensions to 3000px to avoid memory overflow
-                const limit = 3000;
-                let finalW = destW;
-                let finalH = destH;
-                if (finalW > limit || finalH > limit) {
-                    const aspect = finalW / finalH;
-                    if (finalW > finalH) {
-                        finalW = limit;
-                        finalH = Math.round(limit / aspect);
-                    } else {
-                        finalH = limit;
-                        finalW = Math.round(limit * aspect);
-                    }
-                }
-                
-                const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = natW;
-                tempCanvas.height = natH;
-                const tempCtx = tempCanvas.getContext('2d');
-                tempCtx.drawImage(editorImgElement, 0, 0);
-                const srcImgData = tempCtx.getImageData(0, 0, natW, natH);
-                
-                const destPoints = [
-                    { x: 0, y: 0 },
-                    { x: finalW, y: 0 },
-                    { x: finalW, y: finalH },
-                    { x: 0, y: finalH }
-                ];
-                const srcPoints = [tl_orig, tr_orig, br_orig, bl_orig];
-                
-                const h = getPerspectiveCoefficients(srcPoints, destPoints);
-                if (!h) {
-                    throw new Error("Persamaan matriks singular. Pastikan 4 titik tidak sejajar.");
-                }
-                
-                let warpedImgData = warpPerspectiveBilinear(srcImgData, finalW, finalH, h);
-                applyFilterToImageData(warpedImgData, editorFilter);
-                
-                const outCanvas = document.createElement('canvas');
-                outCanvas.width = finalW;
-                outCanvas.height = finalH;
-                const outCtx = outCanvas.getContext('2d');
-                outCtx.putImageData(warpedImgData, 0, 0);
-                
-                const croppedUrl = outCanvas.toDataURL('image/jpeg', 0.95);
-                imgData.dataUrl = croppedUrl;
-                imgData.size = Math.round(croppedUrl.length * 0.75);
-                
-                renderImages();
-                closeCropModal();
-                showToast("Dokumen berhasil diselaraskan & ditingkatkan!");
-            } catch (err) {
-                console.error(err);
-                showToast(err.message || "Gagal memotong dokumen.");
-            } finally {
-                btnEditorSave.disabled = false;
-                btnEditorSave.innerHTML = originalBtnContent;
-                lucide.createIcons();
+                updateHandlePositions();
             }
-        }, 50);
+        } else if (step === 2) {
+            container.classList.remove('step-1');
+            container.classList.add('step-2');
+            titleEl.textContent = "Pilih Filter Warna Dokumen";
+            
+            btnEditorCancel.innerHTML = `<i data-lucide="arrow-left" style="width: 1.1rem; height: 1.1rem; margin-right: 0.25rem; vertical-align: middle;"></i> Kembali`;
+            btnEditorSave.innerHTML = `<i data-lucide="check" style="width: 1.25rem; height: 1.25rem; vertical-align: middle; margin-right: 0.25rem;"></i> Simpan Perubahan`;
+            lucide.createIcons();
+            
+            calculateWarpedImages();
+        }
+    }
+
+    function calculateWarpedImages() {
+        if (!editorImgElement) return;
+        
+        const canvasW = cropCanvas.width;
+        const canvasH = cropCanvas.height;
+        const natW = editorImgElement.naturalWidth;
+        const natH = editorImgElement.naturalHeight;
+        
+        const scaleX = natW / canvasW;
+        const scaleY = natH / canvasH;
+        
+        const tl_orig = { x: editorCorners.tl.x * scaleX, y: editorCorners.tl.y * scaleY };
+        const tr_orig = { x: editorCorners.tr.x * scaleX, y: editorCorners.tr.y * scaleY };
+        const br_orig = { x: editorCorners.br.x * scaleX, y: editorCorners.br.y * scaleY };
+        const bl_orig = { x: editorCorners.bl.x * scaleX, y: editorCorners.bl.y * scaleY };
+        
+        // Save normalized coordinates for non-destructive re-edit
+        const imgData = images.find(img => img.id === activeEditorImageId);
+        if (imgData) {
+            imgData.cropPoints = {
+                tl: { x: editorCorners.tl.x / canvasW, y: editorCorners.tl.y / canvasH },
+                tr: { x: editorCorners.tr.x / canvasW, y: editorCorners.tr.y / canvasH },
+                br: { x: editorCorners.br.x / canvasW, y: editorCorners.br.y / canvasH },
+                bl: { x: editorCorners.bl.x / canvasW, y: editorCorners.bl.y / canvasH }
+            };
+        }
+        
+        // Estimate size of output image
+        const dist = (p1, p2) => Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+        const widthTop = dist(tl_orig, tr_orig);
+        const widthBottom = dist(bl_orig, br_orig);
+        const destW = Math.round(Math.max(widthTop, widthBottom));
+        
+        const heightLeft = dist(tl_orig, bl_orig);
+        const heightRight = dist(tr_orig, br_orig);
+        const destH = Math.round(Math.max(heightLeft, heightRight));
+        
+        // Limit dimensions to 3000px to avoid memory overflow
+        const limit = 3000;
+        let finalW = destW;
+        let finalH = destH;
+        if (finalW > limit || finalH > limit) {
+            const aspect = finalW / finalH;
+            if (finalW > finalH) {
+                finalW = limit;
+                finalH = Math.round(limit / aspect);
+            } else {
+                finalH = limit;
+                finalW = Math.round(limit * aspect);
+            }
+        }
+        
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = natW;
+        tempCanvas.height = natH;
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.drawImage(editorImgElement, 0, 0);
+        const srcImgData = tempCtx.getImageData(0, 0, natW, natH);
+        
+        const destPoints = [
+            { x: 0, y: 0 },
+            { x: finalW, y: 0 },
+            { x: finalW, y: finalH },
+            { x: 0, y: finalH }
+        ];
+        const srcPoints = [tl_orig, tr_orig, br_orig, bl_orig];
+        
+        const h = getPerspectiveCoefficients(srcPoints, destPoints);
+        if (!h) {
+            showToast("Persamaan matriks singular. Pastikan 4 titik tidak sejajar.");
+            setEditorStep(1);
+            return;
+        }
+        
+        // Warp high-res
+        warpedImgDataFull = warpPerspectiveBilinear(srcImgData, finalW, finalH, h);
+        
+        // Size display canvas
+        const dimensions = getEditorDimensions(finalW, finalH);
+        const displayW = dimensions.width;
+        const displayH = dimensions.height;
+        
+        cropCanvas.width = displayW;
+        cropCanvas.height = displayH;
+        cropCanvasContainer.style.width = `${displayW}px`;
+        cropCanvasContainer.style.height = `${displayH}px`;
+        
+        // Render display warped image
+        const highResCanvas = document.createElement('canvas');
+        highResCanvas.width = finalW;
+        highResCanvas.height = finalH;
+        highResCanvas.getContext('2d').putImageData(warpedImgDataFull, 0, 0);
+        
+        const displayCanvas = document.createElement('canvas');
+        displayCanvas.width = displayW;
+        displayCanvas.height = displayH;
+        const displayCtx = displayCanvas.getContext('2d');
+        displayCtx.drawImage(highResCanvas, 0, 0, displayW, displayH);
+        
+        warpedImgDataDisplay = displayCtx.getImageData(0, 0, displayW, displayH);
+        
+        renderStep2Filter();
+    }
+
+    function renderStep2Filter() {
+        if (!warpedImgDataDisplay) return;
+        
+        const displayCopy = new ImageData(
+            new Uint8ClampedArray(warpedImgDataDisplay.data),
+            warpedImgDataDisplay.width,
+            warpedImgDataDisplay.height
+        );
+        
+        applyFilterToImageData(displayCopy, editorFilter);
+        cropCtx.putImageData(displayCopy, 0, 0);
+    }
+
+    // Cancel / Back Button Click Handler
+    btnEditorCancel.addEventListener('click', () => {
+        if (editorStep === 2) {
+            setEditorStep(1);
+        } else {
+            closeCropModal();
+        }
     });
+
+    // Save / Next Button Click Handler
+    btnEditorSave.addEventListener('click', () => {
+        if (editorStep === 1) {
+            // Lanjut ke Step 2
+            btnEditorSave.disabled = true;
+            btnEditorSave.innerHTML = `<div class="loading-spinner" style="width: 1.25rem; height: 1.25rem; margin: 0 0.5rem 0 0;"></div> Memotong...`;
+            
+            setTimeout(() => {
+                setEditorStep(2);
+                btnEditorSave.disabled = false;
+            }, 50);
+        } else if (editorStep === 2) {
+            // Simpan Perubahan
+            if (!warpedImgDataFull || !activeEditorImageId) return;
+            
+            const imgData = images.find(img => img.id === activeEditorImageId);
+            if (!imgData) return;
+            
+            const originalBtnContent = btnEditorSave.innerHTML;
+            btnEditorSave.disabled = true;
+            btnEditorSave.innerHTML = `<div class="loading-spinner" style="width: 1.25rem; height: 1.25rem; margin: 0 0.5rem 0 0;"></div> Menyimpan...`;
+            
+            setTimeout(() => {
+                try {
+                    const finalW = warpedImgDataFull.width;
+                    const finalH = warpedImgDataFull.height;
+                    
+                    const finalWarpedCopy = new ImageData(
+                        new Uint8ClampedArray(warpedImgDataFull.data),
+                        finalW,
+                        finalH
+                    );
+                    
+                    applyFilterToImageData(finalWarpedCopy, editorFilter);
+                    
+                    const outCanvas = document.createElement('canvas');
+                    outCanvas.width = finalW;
+                    outCanvas.height = finalH;
+                    const outCtx = outCanvas.getContext('2d');
+                    outCtx.putImageData(finalWarpedCopy, 0, 0);
+                    
+                    const croppedUrl = outCanvas.toDataURL('image/jpeg', 0.95);
+                    imgData.dataUrl = croppedUrl;
+                    imgData.size = Math.round(croppedUrl.length * 0.75);
+                    imgData.activeFilter = editorFilter;
+                    
+                    renderImages();
+                    closeCropModal();
+                    showToast("Dokumen berhasil diselaraskan & disimpan!");
+                } catch (err) {
+                    console.error(err);
+                    showToast("Gagal menyimpan dokumen.");
+                } finally {
+                    btnEditorSave.disabled = false;
+                    btnEditorSave.innerHTML = originalBtnContent;
+                }
+            }, 50);
+        }
+    });;
 });
