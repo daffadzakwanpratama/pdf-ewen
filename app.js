@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const fitGroup = document.getElementById('fit-group');
     const pageMarginSelect = document.getElementById('page-margin');
     const imageFitSelect = document.getElementById('image-fit');
+    const imageQualitySelect = document.getElementById('image-quality');
     const fileNameInput = document.getElementById('file-name');
 
     // Drag and Drop Event Listeners
@@ -74,6 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     name: file.name,
                     size: file.size,
                     type: file.type,
+                    rotation: 0,
                     dataUrl: e.target.result
                 };
                 images.push(imgObj);
@@ -117,8 +119,10 @@ document.addEventListener('DOMContentLoaded', () => {
             item.className = 'image-item';
             item.setAttribute('data-id', img.id);
 
+            const rotateScale = img.rotation % 180 === 0 ? 1 : 0.8;
+
             item.innerHTML = `
-                <img src="${img.dataUrl}" alt="${img.name}" class="item-thumbnail">
+                <img src="${img.dataUrl}" alt="${img.name}" class="item-thumbnail" style="transform: rotate(${img.rotation}deg) scale(${rotateScale})">
                 <div class="item-details">
                     <div class="item-name" title="${img.name}">${img.name}</div>
                     <div class="item-meta">
@@ -128,6 +132,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
                 <div class="item-controls">
+                    <button class="btn-icon btn-rotate" title="Putar 90°">
+                        <i data-lucide="rotate-cw"></i>
+                    </button>
                     <button class="btn-icon btn-move-up" title="Pindahkan Ke Atas" ${index === 0 ? 'disabled' : ''}>
                         <i data-lucide="arrow-up"></i>
                     </button>
@@ -141,6 +148,11 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
 
             // Button Event Listeners
+            item.querySelector('.btn-rotate').addEventListener('click', (e) => {
+                e.stopPropagation();
+                rotateImage(img.id);
+            });
+
             item.querySelector('.btn-move-up').addEventListener('click', (e) => {
                 e.stopPropagation();
                 moveImage(index, index - 1);
@@ -201,12 +213,45 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Get image dimensions asynchronously
-    function getImageDimensions(dataUrl) {
+    // Rotate image 90 degrees clockwise
+    function rotateImage(id) {
+        images = images.map(img => {
+            if (img.id === id) {
+                return { ...img, rotation: (img.rotation + 90) % 360 };
+            }
+            return img;
+        });
+        renderImages();
+    }
+
+    // Process image to apply rotation and quality settings via Canvas
+    function processImage(dataUrl, rotationAngle, quality) {
         return new Promise((resolve) => {
             const img = new Image();
             img.onload = () => {
-                resolve({ width: img.naturalWidth, height: img.naturalHeight });
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Swapping dimensions for 90 and 270 degrees
+                if (rotationAngle === 90 || rotationAngle === 270) {
+                    canvas.width = img.naturalHeight;
+                    canvas.height = img.naturalWidth;
+                } else {
+                    canvas.width = img.naturalWidth;
+                    canvas.height = img.naturalHeight;
+                }
+                
+                // Move cursor to center, rotate, and draw
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.rotate((rotationAngle * Math.PI) / 180);
+                ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+                
+                // Output as JPEG with the selected quality
+                resolve({
+                    dataUrl: canvas.toDataURL('image/jpeg', quality),
+                    width: canvas.width,
+                    height: canvas.height
+                });
             };
             img.src = dataUrl;
         });
@@ -227,6 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const sizeOpt = pageSizeSelect.value;
             const margin = parseInt(pageMarginSelect.value, 10);
             const fitOpt = imageFitSelect.value;
+            const qualityOpt = parseFloat(imageQualitySelect.value);
             const orientationOpt = document.querySelector('input[name="orientation"]:checked').value;
             let fileName = fileNameInput.value.trim() || 'dokumen-konversi';
             if (!fileName.endsWith('.pdf')) {
@@ -234,8 +280,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // We will initialize jsPDF dynamically per image or reuse settings.
-            // Let's load the dimensions of the first image to define initial PDF format if original size is chosen
-            const firstImgDim = await getImageDimensions(images[0].dataUrl);
+            // Load and process the first image to define initial PDF format if original size is chosen
+            const processedFirst = await processImage(images[0].dataUrl, images[0].rotation, qualityOpt);
             
             let docOptions = {
                 unit: 'mm'
@@ -245,8 +291,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const pxToMm = 0.264583;
 
             if (sizeOpt === 'original') {
-                const wMm = firstImgDim.width * pxToMm + (margin * 2);
-                const hMm = firstImgDim.height * pxToMm + (margin * 2);
+                const wMm = processedFirst.width * pxToMm + (margin * 2);
+                const hMm = processedFirst.height * pxToMm + (margin * 2);
                 docOptions.orientation = wMm > hMm ? 'l' : 'p';
                 docOptions.format = [wMm, hMm];
             } else {
@@ -258,7 +304,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             for (let i = 0; i < images.length; i++) {
                 const img = images[i];
-                const dim = await getImageDimensions(img.dataUrl);
+                // Process the image (applies rotation and compression)
+                const processed = await processImage(img.dataUrl, img.rotation, qualityOpt);
                 
                 // Determine format and dimensions for this specific page
                 let pWidth, pHeight;
@@ -268,10 +315,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (sizeOpt === 'original') {
                     // Page dimensions unique to this image size
-                    pWidth = dim.width * pxToMm + (margin * 2);
-                    pHeight = dim.height * pxToMm + (margin * 2);
-                    scaleW = dim.width * pxToMm;
-                    scaleH = dim.height * pxToMm;
+                    pWidth = processed.width * pxToMm + (margin * 2);
+                    pHeight = processed.height * pxToMm + (margin * 2);
+                    scaleW = processed.width * pxToMm;
+                    scaleH = processed.height * pxToMm;
                 } else {
                     // Standard sizes A4/Letter
                     // A4 is 210x297, Letter is 215.9x279.4
@@ -289,7 +336,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const contentH = pHeight - (margin * 2);
 
                     if (fitOpt === 'contain') {
-                        const imgRatio = dim.width / dim.height;
+                        const imgRatio = processed.width / processed.height;
                         const contentRatio = contentW / contentH;
 
                         if (imgRatio > contentRatio) {
@@ -319,16 +366,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
 
-                // Determine image format for compression
-                let imgFormat = 'JPEG';
-                if (img.type === 'image/png') {
-                    imgFormat = 'PNG';
-                } else if (img.type === 'image/webp') {
-                    imgFormat = 'WEBP';
-                }
-
-                // Add image
-                doc.addImage(img.dataUrl, imgFormat, x, y, scaleW, scaleH);
+                // Add processed image (since it's outputted as canvas.toDataURL('image/jpeg'), format is JPEG)
+                doc.addImage(processed.dataUrl, 'JPEG', x, y, scaleW, scaleH);
             }
 
             // Save the generated PDF file
