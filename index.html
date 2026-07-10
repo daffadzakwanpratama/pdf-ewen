@@ -12,7 +12,7 @@
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="style.css?v=2.1">
+    <link rel="stylesheet" href="style.css?v=2.2">
     <!-- jsPDF CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- JSZip CDN -->
@@ -45,29 +45,29 @@
                             <p>Ubah JPG, PNG, WebP ke file PDF</p>
                             <span class="badge badge-active">Aktif</span>
                         </div>
-                        <div class="card card-inactive" data-tool="word-to-pdf">
+                        <div class="card card-active" data-tool="word-to-pdf">
                             <div class="card-icon-wrapper blue">
                                 <i data-lucide="file-text"></i>
                             </div>
                             <h4>Word to PDF</h4>
                             <p>Ubah file Word DOCX ke PDF</p>
-                            <span class="badge badge-inactive">Perlu Server</span>
+                            <span class="badge badge-active">Aktif (API)</span>
                         </div>
-                        <div class="card card-inactive" data-tool="ppt-to-pdf">
+                        <div class="card card-active" data-tool="ppt-to-pdf">
                             <div class="card-icon-wrapper orange">
                                 <i data-lucide="presentation"></i>
                             </div>
                             <h4>PowerPoint to PDF</h4>
                             <p>Ubah file Slide PPTX ke PDF</p>
-                            <span class="badge badge-inactive">Perlu Server</span>
+                            <span class="badge badge-active">Aktif (API)</span>
                         </div>
-                        <div class="card card-inactive" data-tool="excel-to-pdf">
+                        <div class="card card-active" data-tool="excel-to-pdf">
                             <div class="card-icon-wrapper green">
                                 <i data-lucide="sheet"></i>
                             </div>
                             <h4>Excel to PDF</h4>
                             <p>Ubah spreadsheet XLSX ke PDF</p>
-                            <span class="badge badge-inactive">Perlu Server</span>
+                            <span class="badge badge-active">Aktif (API)</span>
                         </div>
                     </div>
                 </div>
@@ -84,29 +84,29 @@
                             <p>Ekstrak semua halaman PDF ke gambar JPG</p>
                             <span class="badge badge-active">Aktif</span>
                         </div>
-                        <div class="card card-inactive" data-tool="pdf-to-word">
+                        <div class="card card-active" data-tool="pdf-to-word">
                             <div class="card-icon-wrapper blue">
                                 <i data-lucide="file-text"></i>
                             </div>
                             <h4>PDF to Word</h4>
-                            <p>Ubah PDF ke dokumen Word</p>
-                            <span class="badge badge-inactive">Perlu Server</span>
+                            <p>Ubah PDF ke dokumen Word DOCX</p>
+                            <span class="badge badge-active">Aktif (API)</span>
                         </div>
-                        <div class="card card-inactive" data-tool="pdf-to-ppt">
+                        <div class="card card-active" data-tool="pdf-to-ppt">
                             <div class="card-icon-wrapper orange">
                                 <i data-lucide="presentation"></i>
                             </div>
                             <h4>PDF to PowerPoint</h4>
-                            <p>Ubah PDF ke slide presentasi</p>
-                            <span class="badge badge-inactive">Perlu Server</span>
+                            <p>Ubah PDF ke slide presentasi PPTX</p>
+                            <span class="badge badge-active">Aktif (API)</span>
                         </div>
-                        <div class="card card-inactive" data-tool="pdf-to-excel">
+                        <div class="card card-active" data-tool="pdf-to-excel">
                             <div class="card-icon-wrapper green">
                                 <i data-lucide="sheet"></i>
                             </div>
                             <h4>PDF to Excel</h4>
-                            <p>Ubah PDF ke spreadsheet Excel</p>
-                            <span class="badge badge-inactive">Perlu Server</span>
+                            <p>Ubah PDF ke spreadsheet Excel XLSX</p>
+                            <span class="badge badge-active">Aktif (API)</span>
                         </div>
                     </div>
                 </div>
@@ -367,6 +367,107 @@
             </main>
         </div>
 
+        <!-- View 4: Unified Office Converter (CloudConvert) -->
+        <div id="office-converter-view" class="spa-view" style="display: none;">
+            <header class="tool-header">
+                <button class="btn btn-secondary btn-back">
+                    <i data-lucide="arrow-left"></i> Beranda
+                </button>
+                <div class="tool-title">
+                    <i data-lucide="file-text" class="tool-title-icon yellow" id="office-tool-icon"></i>
+                    <h2 id="office-tool-title">Word to PDF</h2>
+                </div>
+            </header>
+
+            <main class="app-main">
+                <!-- Left Panel: File Dropzone & Details -->
+                <section class="panel upload-panel">
+                    <div class="dropzone" id="dropzone-office">
+                        <input type="file" id="file-input-office" class="file-input-hidden">
+                        <div class="dropzone-content">
+                            <div class="upload-icon-wrapper">
+                                <i data-lucide="file-up" class="upload-icon" id="office-dropzone-icon"></i>
+                            </div>
+                            <h3 id="office-dropzone-text">Pilih dokumen Anda</h3>
+                            <p class="upload-hint">Tarik & lepas file di sini atau klik untuk mencari</p>
+                            <p class="file-types" id="office-file-types">Mendukung format file</p>
+                        </div>
+                    </div>
+
+                    <!-- Selected File Info -->
+                    <div class="preview-section" id="preview-section-office" style="display: none;">
+                        <div class="preview-header">
+                            <div class="preview-stats">
+                                <i data-lucide="file-check" class="section-icon"></i>
+                                <h3>File yang Dipilih</h3>
+                            </div>
+                            <button id="btn-clear-office" class="btn btn-danger-outline btn-sm">
+                                <i data-lucide="trash-2"></i> Hapus File
+                            </button>
+                        </div>
+                        <div class="image-list">
+                            <div class="image-item" id="office-file-item" style="border-color: var(--color-primary);">
+                                <div class="card-icon-wrapper blue" id="office-preview-icon-wrapper" style="width: 3.5rem; height: 3.5rem; border-radius: 8px; margin-bottom: 0; display: flex; align-items: center; justify-content: center;">
+                                    <i data-lucide="file-text" id="office-preview-icon" style="width: 1.75rem; height: 1.75rem;"></i>
+                                </div>
+                                <div class="item-details">
+                                    <div class="item-name" id="office-file-name">document.docx</div>
+                                    <div class="item-meta">
+                                        <span id="office-file-size">0 KB</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Right Panel: Configurations & Actions -->
+                <section class="panel config-panel">
+                    <div class="config-header">
+                        <i data-lucide="sliders" class="section-icon"></i>
+                        <h2>Konfigurasi Konversi</h2>
+                    </div>
+
+                    <div class="config-form">
+                        <!-- API Key -->
+                        <div class="form-group">
+                            <label for="cloudconvert-key">CloudConvert API Key</label>
+                            <div class="input-wrapper">
+                                <input type="password" id="cloudconvert-key" placeholder="Masukkan API Key CloudConvert Anda" style="padding-right: 3rem;">
+                                <button class="btn-icon" id="btn-toggle-key-visibility" type="button" title="Tampilkan/Sembunyikan Kata Sandi" style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); width: 2rem; height: 2rem;">
+                                    <i data-lucide="eye"></i>
+                                </button>
+                            </div>
+                            <p class="file-types" style="margin-top: 0.25rem;">Kunci disimpan lokal secara aman di browser Anda.</p>
+                        </div>
+
+                        <!-- Target Format info -->
+                        <div class="form-group">
+                            <label>Format Hasil</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="office-target-format" value="PDF" disabled style="background-color: rgba(255,255,255,0.02); border-style: dashed; color: var(--text-secondary);">
+                            </div>
+                        </div>
+
+                        <!-- Output File Name -->
+                        <div class="form-group">
+                            <label for="office-output-name">Nama File Hasil</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="office-output-name" placeholder="hasil-konversi" value="hasil-konversi">
+                                <span class="input-suffix" id="office-output-suffix">.pdf</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="actions-wrapper">
+                        <button id="btn-convert-office" class="btn btn-primary btn-block btn-lg" disabled>
+                            <i data-lucide="refresh-cw"></i> Mulai Konversi
+                        </button>
+                    </div>
+                </section>
+            </main>
+        </div>
+
         <!-- Notification Toast -->
         <div id="toast-notification" class="toast" style="display: none;">
             <i data-lucide="info" class="toast-icon"></i>
@@ -375,7 +476,7 @@
 
         <!-- Footer -->
         <footer class="app-footer">
-            <p>&copy; 2026 PicToPDF Suite. Dibuat dengan cinta untuk keamanan data Anda. Semua pemrosesan terjadi lokal di browser Anda.</p>
+            <p>&copy; 2026 PicToPDF Suite. Dibuat dengan cinta untuk keamanan data Anda. Semua pemrosesan lokal dan CloudConvert API.</p>
         </footer>
     </div>
 
@@ -383,6 +484,13 @@
     <script>
         lucide.createIcons();
     </script>
+    
+    <!-- API key configuration source -->
+    <script>
+        window.CLOUDCONVERT_API_KEY = "";
+    </script>
+    <script src="config.js" onerror="console.log('Running without local config.js')"></script>
+    
     <!-- Custom JS -->
     <script src="app.js"></script>
 </body>

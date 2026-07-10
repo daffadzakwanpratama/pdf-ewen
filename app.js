@@ -5,6 +5,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const dashboardView = document.getElementById('dashboard-view');
     const imageToPdfView = document.getElementById('image-to-pdf-view');
     const pdfToImageView = document.getElementById('pdf-to-image-view');
+    const officeConverterView = document.getElementById('office-converter-view');
+    
     const toast = document.getElementById('toast-notification');
     const toastMessage = document.getElementById('toast-message');
 
@@ -17,6 +19,10 @@ document.addEventListener('DOMContentLoaded', () => {
             toast.style.display = 'none';
         }, 3500);
     }
+
+    // Office Tool Configurations State
+    let currentSourceExtensions = []; // allowed extensions
+    let currentTargetFormat = "";      // target format ('pdf', 'docx', etc.)
 
     // Active tool card routing
     document.querySelectorAll('.card-active').forEach(card => {
@@ -33,15 +39,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 imageToPdfView.style.display = 'flex';
             } else if (tool === 'pdf-to-image') {
                 pdfToImageView.style.display = 'flex';
+            } else {
+                // It is one of the 6 CloudConvert Office tools
+                setupOfficeConverter(tool);
+                officeConverterView.style.display = 'flex';
             }
-        });
-    });
-
-    // Inactive card clicks
-    document.querySelectorAll('.card-inactive').forEach(card => {
-        card.addEventListener('click', () => {
-            const toolName = card.querySelector('h4').textContent;
-            showToast(`Fitur "${toolName}" memerlukan integrasi backend server & saat ini dinonaktifkan.`);
         });
     });
 
@@ -58,11 +60,12 @@ document.addEventListener('DOMContentLoaded', () => {
             // Clear inputs and states on return to avoid memory footprint
             clearImageToPdfState();
             clearPdfToImageState();
+            clearOfficeConverterState();
         });
     });
 
 
-    // --- 2. MODULE: IMAGE TO PDF (Existing Fitur) ---
+    // --- 2. MODULE: IMAGE TO PDF ---
     let images = [];
     let imageIdCounter = 0;
 
@@ -442,8 +445,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
 
-    // --- 3. MODULE: PDF TO JPG (New Fitur) ---
-    // pdf.js Global Setup
+    // --- 3. MODULE: PDF TO JPG ---
     const { pdfjsLib } = window;
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
@@ -496,7 +498,6 @@ document.addEventListener('DOMContentLoaded', () => {
         fileInputPdf.value = '';
     });
 
-    // Handle PDF upload
     function handlePdfFile(file) {
         if (!file || file.type !== 'application/pdf') {
             showToast('Silakan pilih file dokumen PDF (.pdf) saja.');
@@ -504,17 +505,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         currentPdfFile = file;
-        
-        // Set default output file name
         const dotIdx = file.name.lastIndexOf('.');
         const baseName = dotIdx !== -1 ? file.name.substring(0, dotIdx) : file.name;
         pdfOutputNameInput.value = `${baseName}-images`;
 
-        // Load PDF using pdf.js
         const reader = new FileReader();
         reader.onload = async function(e) {
             try {
-                // Show loading spinner inside button while loading document
                 btnConvertPdf.disabled = true;
                 btnConvertPdf.innerHTML = `<div class="loading-spinner"></div> Membuka PDF...`;
 
@@ -524,14 +521,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderPdfThumbnails();
             } catch (err) {
                 console.error(err);
-                showToast("Gagal membaca dokumen PDF ini. Pastikan file tidak rusak.");
+                showToast("Gagal membaca dokumen PDF. File mungkin rusak.");
                 clearPdfToImageState();
             }
         };
         reader.readAsArrayBuffer(file);
     }
 
-    // Render Preview Thumbnails for PDF pages
     async function renderPdfThumbnails() {
         if (!currentPdfDoc) return;
 
@@ -542,12 +538,9 @@ document.addEventListener('DOMContentLoaded', () => {
         btnConvertPdf.innerHTML = `<i data-lucide="file-image"></i> Ekstrak ke JPG`;
         lucide.createIcons();
 
-        // Update Suffix: single page = .jpg, multi-page = .zip
         pdfOutputSuffix.textContent = currentPdfDoc.numPages === 1 ? '.jpg' : '.zip';
-
         pdfPageGrid.innerHTML = '';
 
-        // Render each page canvas as preview thumbnail (low scale for performance)
         for (let i = 1; i <= currentPdfDoc.numPages; i++) {
             const card = document.createElement('div');
             card.className = 'pdf-page-card';
@@ -591,10 +584,8 @@ document.addEventListener('DOMContentLoaded', () => {
         clearPdfToImageState();
     });
 
-    // Execute conversion / extraction to JPG
     btnConvertPdf.addEventListener('click', async () => {
         if (!currentPdfDoc) return;
-
         const originalBtnText = btnConvertPdf.innerHTML;
         btnConvertPdf.disabled = true;
         btnConvertPdf.innerHTML = `<div class="loading-spinner"></div> Mengekstrak...`;
@@ -605,7 +596,6 @@ document.addEventListener('DOMContentLoaded', () => {
             let outName = pdfOutputNameInput.value.trim() || 'halaman-pdf';
 
             if (currentPdfDoc.numPages === 1) {
-                // Single Page PDF -> Download JPG directly
                 const page = await currentPdfDoc.getPage(1);
                 const viewport = page.getViewport({ scale: scaleOpt });
                 const canvas = document.createElement('canvas');
@@ -627,7 +617,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 link.click();
                 showToast("Halaman PDF berhasil diekstrak ke JPG!");
             } else {
-                // Multi-page PDF -> Zip and download
                 const zip = new JSZip();
 
                 for (let i = 1; i <= currentPdfDoc.numPages; i++) {
@@ -644,7 +633,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     }).promise;
 
                     const imgUrl = canvas.toDataURL('image/jpeg', qualityOpt);
-                    // Extract base64 content
                     const base64Data = imgUrl.substring(imgUrl.indexOf(',') + 1);
                     zip.file(`${outName}-halaman-${i}.jpg`, base64Data, { base64: true });
                 }
@@ -664,6 +652,348 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
             btnConvertPdf.disabled = false;
             btnConvertPdf.innerHTML = originalBtnText;
+        }
+    });
+
+
+    // --- 4. MODULE: UNIFIED OFFICE CONVERTER (CloudConvert V2) ---
+    let currentOfficeFile = null;
+
+    // DOM References - Office Converter
+    const dropzoneOffice = document.getElementById('dropzone-office');
+    const fileInputOffice = document.getElementById('file-input-office');
+    const previewSectionOffice = document.getElementById('preview-section-office');
+    const btnClearOffice = document.getElementById('btn-clear-office');
+    
+    const officeToolIcon = document.getElementById('office-tool-icon');
+    const officeToolTitle = document.getElementById('office-tool-title');
+    const officeDropzoneIcon = document.getElementById('office-dropzone-icon');
+    const officeDropzoneText = document.getElementById('office-dropzone-text');
+    const officeFileTypes = document.getElementById('office-file-types');
+    
+    const officePreviewIcon = document.getElementById('office-preview-icon');
+    const officeFileName = document.getElementById('office-file-name');
+    const officeFileSize = document.getElementById('office-file-size');
+    
+    const cloudConvertKeyInput = document.getElementById('cloudconvert-key');
+    const btnToggleKeyVisibility = document.getElementById('btn-toggle-key-visibility');
+    
+    const officeTargetFormatInput = document.getElementById('office-target-format');
+    const officeOutputNameInput = document.getElementById('office-output-name');
+    const officeOutputSuffix = document.getElementById('office-output-suffix');
+    const btnConvertOffice = document.getElementById('btn-convert-office');
+
+    // API Key Handling
+    const savedApiKey = localStorage.getItem('cloudconvert_api_key') || window.CLOUDCONVERT_API_KEY || '';
+    cloudConvertKeyInput.value = savedApiKey;
+
+    btnToggleKeyVisibility.addEventListener('click', () => {
+        cloudConvertKeyInput.type = cloudConvertKeyInput.type === 'password' ? 'text' : 'password';
+        // Toggle icon visually
+        const eyeIcon = btnToggleKeyVisibility.querySelector('i');
+        if (cloudConvertKeyInput.type === 'text') {
+            eyeIcon.setAttribute('data-lucide', 'eye-off');
+        } else {
+            eyeIcon.setAttribute('data-lucide', 'eye');
+        }
+        lucide.createIcons();
+    });
+
+    // Map tool to config setup
+    function setupOfficeConverter(tool) {
+        // Defaults
+        let title = "Word to PDF";
+        let icon = "file-text";
+        let extensionsLabel = "Mendukung format file .docx, .doc";
+        let acceptValue = ".docx, .doc";
+        let dropzoneMsg = "Pilih dokumen Word Anda";
+        
+        if (tool === 'word-to-pdf') {
+            title = "Word to PDF";
+            icon = "file-text";
+            currentSourceExtensions = ['docx', 'doc'];
+            currentTargetFormat = 'pdf';
+            extensionsLabel = "Mendukung format file .docx, .doc";
+            acceptValue = ".docx, .doc";
+            dropzoneMsg = "Pilih dokumen Word Anda";
+        } else if (tool === 'ppt-to-pdf') {
+            title = "PowerPoint to PDF";
+            icon = "presentation";
+            currentSourceExtensions = ['pptx', 'ppt'];
+            currentTargetFormat = 'pdf';
+            extensionsLabel = "Mendukung file presentasi .pptx, .ppt";
+            acceptValue = ".pptx, .ppt";
+            dropzoneMsg = "Pilih file PowerPoint Anda";
+        } else if (tool === 'excel-to-pdf') {
+            title = "Excel to PDF";
+            icon = "sheet";
+            currentSourceExtensions = ['xlsx', 'xls'];
+            currentTargetFormat = 'pdf';
+            extensionsLabel = "Mendukung spreadsheet .xlsx, .xls";
+            acceptValue = ".xlsx, .xls";
+            dropzoneMsg = "Pilih spreadsheet Excel Anda";
+        } else if (tool === 'pdf-to-word') {
+            title = "PDF to Word";
+            icon = "file-text";
+            currentSourceExtensions = ['pdf'];
+            currentTargetFormat = 'docx';
+            extensionsLabel = "Mendukung dokumen PDF (.pdf)";
+            acceptValue = ".pdf";
+            dropzoneMsg = "Pilih file PDF Anda";
+        } else if (tool === 'pdf-to-ppt') {
+            title = "PDF to PowerPoint";
+            icon = "presentation";
+            currentSourceExtensions = ['pdf'];
+            currentTargetFormat = 'pptx';
+            extensionsLabel = "Mendukung dokumen PDF (.pdf)";
+            acceptValue = ".pdf";
+            dropzoneMsg = "Pilih file PDF Anda";
+        } else if (tool === 'pdf-to-excel') {
+            title = "PDF to Excel";
+            icon = "sheet";
+            currentSourceExtensions = ['pdf'];
+            currentTargetFormat = 'xlsx';
+            extensionsLabel = "Mendukung dokumen PDF (.pdf)";
+            acceptValue = ".pdf";
+            dropzoneMsg = "Pilih file PDF Anda";
+        }
+
+        // Apply to UI
+        officeToolTitle.textContent = title;
+        officeToolIcon.setAttribute('data-lucide', icon);
+        officeDropzoneIcon.setAttribute('data-lucide', icon === 'presentation' ? 'presentation' : (icon === 'sheet' ? 'sheet' : 'file-up'));
+        officeDropzoneText.textContent = dropzoneMsg;
+        officeFileTypes.textContent = extensionsLabel;
+        
+        fileInputOffice.accept = acceptValue;
+        officeTargetFormatInput.value = currentTargetFormat.toUpperCase();
+        officeOutputSuffix.textContent = `.${currentTargetFormat}`;
+
+        lucide.createIcons();
+    }
+
+    // Drag-drop Office file
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropzoneOffice.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropzoneOffice.classList.add('dragover');
+        }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropzoneOffice.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropzoneOffice.classList.remove('dragover');
+        }, false);
+    });
+
+    dropzoneOffice.addEventListener('drop', (e) => {
+        if (e.dataTransfer.files.length > 0) {
+            handleOfficeFile(e.dataTransfer.files[0]);
+        }
+    });
+
+    dropzoneOffice.addEventListener('click', () => {
+        fileInputOffice.click();
+    });
+
+    fileInputOffice.addEventListener('change', () => {
+        if (fileInputOffice.files.length > 0) {
+            handleOfficeFile(fileInputOffice.files[0]);
+        }
+        fileInputOffice.value = '';
+    });
+
+    function handleOfficeFile(file) {
+        if (!file) return;
+
+        // Verify extension
+        const ext = file.name.substring(file.name.lastIndexOf('.') + 1).toLowerCase();
+        if (!currentSourceExtensions.includes(ext)) {
+            showToast(`Ekstensi file .${ext} tidak didukung untuk modul ini.`);
+            return;
+        }
+
+        currentOfficeFile = file;
+
+        // Preview rendering
+        officeFileName.textContent = file.name;
+        officeFileSize.textContent = formatBytes(file.size);
+        
+        // Update default output name
+        const dotIdx = file.name.lastIndexOf('.');
+        const baseName = dotIdx !== -1 ? file.name.substring(0, dotIdx) : file.name;
+        officeOutputNameInput.value = `${baseName}-converted`;
+
+        // Update preview icons matching file type
+        const isPdf = ext === 'pdf';
+        const docIcon = isPdf ? 'file-text' : (['pptx','ppt'].includes(ext) ? 'presentation' : (['xlsx','xls'].includes(ext) ? 'sheet' : 'file-text'));
+        officePreviewIcon.setAttribute('data-lucide', docIcon);
+        
+        dropzoneOffice.style.display = 'none';
+        previewSectionOffice.style.display = 'flex';
+        btnConvertOffice.disabled = false;
+
+        lucide.createIcons();
+    }
+
+    function clearOfficeConverterState() {
+        currentOfficeFile = null;
+        previewSectionOffice.style.display = 'none';
+        dropzoneOffice.style.display = 'block';
+        btnConvertOffice.disabled = true;
+        btnConvertOffice.innerHTML = `<i data-lucide="refresh-cw"></i> Mulai Konversi`;
+        officeOutputNameInput.value = 'hasil-konversi';
+        lucide.createIcons();
+    }
+
+    btnClearOffice.addEventListener('click', () => {
+        clearOfficeConverterState();
+    });
+
+    // CloudConvert Job Flow Execution
+    async function runCloudConvertJob(file, inputExt, outputExt, apiKey) {
+        // 1. Create Job Request
+        const createJobUrl = 'https://api.cloudconvert.com/v2/jobs';
+        const jobPayload = {
+            tasks: {
+                'import-1': {
+                    operation: 'import/upload'
+                },
+                'convert-1': {
+                    operation: 'convert',
+                    input: 'import-1',
+                    input_format: inputExt,
+                    output_format: outputExt
+                },
+                'export-1': {
+                    operation: 'export/url',
+                    input: 'convert-1'
+                }
+            }
+        };
+
+        const jobResponse = await fetch(createJobUrl, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(jobPayload)
+        });
+
+        if (!jobResponse.ok) {
+            const errData = await jobResponse.json();
+            throw new Error(errData.message || 'Gagal membuat tugas konversi di server CloudConvert.');
+        }
+
+        const jobData = await jobResponse.json();
+        
+        // 2. Upload file to AWS S3 using S3 form payload details from the import task
+        const importTask = jobData.data.tasks.find(t => t.name === 'import-1');
+        const uploadForm = importTask.result.form;
+
+        const formData = new FormData();
+        for (const [key, val] of Object.entries(uploadForm.parameters)) {
+            formData.append(key, val);
+        }
+        formData.append('file', file);
+
+        const uploadResponse = await fetch(uploadForm.url, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!uploadResponse.ok) {
+            throw new Error('Gagal mengunggah file ke server konversi S3.');
+        }
+
+        // 3. Poll export-1 task until status is finished
+        const exportTaskId = jobData.data.tasks.find(t => t.name === 'export-1').id;
+        const taskStatusUrl = `https://api.cloudconvert.com/v2/tasks/${exportTaskId}`;
+
+        let exportTaskFinished = false;
+        let finalFileUrl = '';
+        let loopCount = 0;
+
+        // Poll every 2.5 seconds, max timeout 150 seconds (60 iterations)
+        while (!exportTaskFinished && loopCount < 60) {
+            await new Promise(resolve => setTimeout(resolve, 2500));
+            loopCount++;
+            
+            const taskResponse = await fetch(taskStatusUrl, {
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`
+                }
+            });
+            
+            if (!taskResponse.ok) {
+                throw new Error('Gagal memantau status konversi.');
+            }
+
+            const taskData = await taskResponse.json();
+            const status = taskData.data.status;
+
+            if (status === 'finished') {
+                exportTaskFinished = true;
+                finalFileUrl = taskData.data.result.files[0].url;
+            } else if (status === 'failed') {
+                throw new Error(taskData.data.message || 'Proses konversi gagal di server CloudConvert.');
+            }
+        }
+
+        if (!exportTaskFinished) {
+            throw new Error('Waktu konversi habis (Timeout). File Anda mungkin terlalu besar.');
+        }
+
+        return finalFileUrl;
+    }
+
+    btnConvertOffice.addEventListener('click', async () => {
+        if (!currentOfficeFile) return;
+
+        const apiKey = cloudConvertKeyInput.value.trim();
+        if (!apiKey) {
+            showToast("Harap masukkan API Key CloudConvert Anda terlebih dahulu.");
+            return;
+        }
+
+        // Save key to local storage for user convenience
+        localStorage.setItem('cloudconvert_api_key', apiKey);
+
+        const originalBtnText = btnConvertOffice.innerHTML;
+        btnConvertOffice.disabled = true;
+        
+        try {
+            const inputExt = currentOfficeFile.name.substring(currentOfficeFile.name.lastIndexOf('.') + 1).toLowerCase();
+            const outputExt = currentTargetFormat;
+            let outputName = officeOutputNameInput.value.trim() || 'hasil-konversi';
+            if (!outputName.endsWith(`.${outputExt}`)) {
+                outputName += `.${outputExt}`;
+            }
+
+            // Stage 1: Uploading
+            btnConvertOffice.innerHTML = `<div class="loading-spinner"></div> Mengunggah file...`;
+            const fileUrl = await runCloudConvertJob(currentOfficeFile, inputExt, outputExt, apiKey);
+
+            // Stage 2: Finished -> Download URL
+            btnConvertOffice.innerHTML = `<div class="loading-spinner"></div> Mengunduh hasil...`;
+            const link = document.createElement('a');
+            link.href = fileUrl;
+            link.download = outputName;
+            link.click();
+
+            showToast("Konversi dokumen berhasil!");
+            clearOfficeConverterState();
+        } catch (error) {
+            console.error(error);
+            showToast(error.message || "Gagal melakukan konversi dokumen.");
+        } finally {
+            btnConvertOffice.disabled = false;
+            btnConvertOffice.innerHTML = originalBtnText;
+            lucide.createIcons();
         }
     });
 });
