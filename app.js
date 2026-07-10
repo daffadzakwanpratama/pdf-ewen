@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnConvert = document.getElementById('btn-convert');
     
     // Configurations
+    const conversionModeSelect = document.getElementById('conversion-mode');
     const pageSizeSelect = document.getElementById('page-size');
     const orientationGroup = document.getElementById('orientation-group');
     const fitGroup = document.getElementById('fit-group');
@@ -22,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const imageFitSelect = document.getElementById('image-fit');
     const imageQualitySelect = document.getElementById('image-quality');
     const fileNameInput = document.getElementById('file-name');
+    const fileNameSuffix = document.getElementById('file-name-suffix');
 
     // Drag and Drop Event Listeners
     ['dragenter', 'dragover'].forEach(eventName => {
@@ -213,6 +215,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Handle suffix change based on conversion mode
+    conversionModeSelect.addEventListener('change', () => {
+        const val = conversionModeSelect.value;
+        if (val === 'separate') {
+            fileNameSuffix.textContent = '.zip';
+        } else {
+            fileNameSuffix.textContent = '.pdf';
+        }
+    });
+
     // Rotate image 90 degrees clockwise
     function rotateImage(id) {
         images = images.map(img => {
@@ -274,105 +286,200 @@ document.addEventListener('DOMContentLoaded', () => {
             const fitOpt = imageFitSelect.value;
             const qualityOpt = parseFloat(imageQualitySelect.value);
             const orientationOpt = document.querySelector('input[name="orientation"]:checked').value;
+            const modeOpt = conversionModeSelect.value;
             let fileName = fileNameInput.value.trim() || 'dokumen-konversi';
-            if (!fileName.endsWith('.pdf')) {
-                fileName += '.pdf';
-            }
-
-            // We will initialize jsPDF dynamically per image or reuse settings.
-            // Load and process the first image to define initial PDF format if original size is chosen
-            const processedFirst = await processImage(images[0].dataUrl, images[0].rotation, qualityOpt);
-            
-            let docOptions = {
-                unit: 'mm'
-            };
 
             // Pixel to mm conversion factor (96 dpi)
             const pxToMm = 0.264583;
 
-            if (sizeOpt === 'original') {
-                const wMm = processedFirst.width * pxToMm + (margin * 2);
-                const hMm = processedFirst.height * pxToMm + (margin * 2);
-                docOptions.orientation = wMm > hMm ? 'l' : 'p';
-                docOptions.format = [wMm, hMm];
-            } else {
-                docOptions.orientation = orientationOpt;
-                docOptions.format = sizeOpt; // 'a4' or 'letter'
-            }
+            if (modeOpt === 'separate') {
+                const zip = new JSZip();
 
-            const doc = new jsPDF(docOptions);
+                for (let i = 0; i < images.length; i++) {
+                    const img = images[i];
+                    // Process the image (applies rotation and compression)
+                    const processed = await processImage(img.dataUrl, img.rotation, qualityOpt);
+                    
+                    // Determine format and dimensions for this specific page
+                    let pWidth, pHeight;
+                    let scaleW, scaleH;
+                    let x = margin;
+                    let y = margin;
+                    let pageOrientation = orientationOpt;
+                    let pageFormat = sizeOpt;
 
-            for (let i = 0; i < images.length; i++) {
-                const img = images[i];
-                // Process the image (applies rotation and compression)
-                const processed = await processImage(img.dataUrl, img.rotation, qualityOpt);
+                    if (sizeOpt === 'original') {
+                        // Page dimensions unique to this image size
+                        pWidth = processed.width * pxToMm + (margin * 2);
+                        pHeight = processed.height * pxToMm + (margin * 2);
+                        scaleW = processed.width * pxToMm;
+                        scaleH = processed.height * pxToMm;
+                        pageOrientation = pWidth > pHeight ? 'l' : 'p';
+                        pageFormat = [pWidth, pHeight];
+                    } else {
+                        // Standard sizes A4/Letter
+                        const isLandscape = orientationOpt === 'l';
+                        
+                        if (sizeOpt === 'a4') {
+                            pWidth = isLandscape ? 297 : 210;
+                            pHeight = isLandscape ? 210 : 297;
+                        } else { // Letter
+                            pWidth = isLandscape ? 279.4 : 215.9;
+                            pHeight = isLandscape ? 215.9 : 279.4;
+                        }
+
+                        const contentW = pWidth - (margin * 2);
+                        const contentH = pHeight - (margin * 2);
+
+                        if (fitOpt === 'contain') {
+                            const imgRatio = processed.width / processed.height;
+                            const contentRatio = contentW / contentH;
+
+                            if (imgRatio > contentRatio) {
+                                scaleW = contentW;
+                                scaleH = contentW / imgRatio;
+                            } else {
+                                scaleH = contentH;
+                                scaleW = contentH * imgRatio;
+                            }
+                            
+                            // Centered inside margin box
+                            x = margin + (contentW - scaleW) / 2;
+                            y = margin + (contentH - scaleH) / 2;
+                        } else { // cover - stretch/fill margin box
+                            scaleW = contentW;
+                            scaleH = contentH;
+                        }
+                    }
+
+                    // Create single page PDF
+                    const singleDoc = new jsPDF({
+                        orientation: pageOrientation,
+                        unit: 'mm',
+                        format: pageFormat
+                    });
+
+                    // Add processed image
+                    singleDoc.addImage(processed.dataUrl, 'JPEG', x, y, scaleW, scaleH);
+                    
+                    // Export PDF to blob
+                    const pdfBlob = singleDoc.output('blob');
+                    
+                    // Find image base name
+                    const dotIndex = img.name.lastIndexOf('.');
+                    const baseName = dotIndex !== -1 ? img.name.substring(0, dotIndex) : img.name;
+                    const pdfName = `${baseName}.pdf`;
+                    
+                    zip.file(pdfName, pdfBlob);
+                }
+
+                // Generate ZIP archive
+                const zipBlob = await zip.generateAsync({ type: 'blob' });
                 
-                // Determine format and dimensions for this specific page
-                let pWidth, pHeight;
-                let scaleW, scaleH;
-                let x = margin;
-                let y = margin;
+                // Trigger download
+                if (!fileName.endsWith('.zip')) {
+                    fileName += '.zip';
+                }
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(zipBlob);
+                link.download = fileName;
+                link.click();
+
+            } else {
+                // Merge Mode: Existing logic
+                if (!fileName.endsWith('.pdf')) {
+                    fileName += '.pdf';
+                }
+
+                // Load and process the first image to define initial PDF format if original size is chosen
+                const processedFirst = await processImage(images[0].dataUrl, images[0].rotation, qualityOpt);
+                
+                let docOptions = {
+                    unit: 'mm'
+                };
 
                 if (sizeOpt === 'original') {
-                    // Page dimensions unique to this image size
-                    pWidth = processed.width * pxToMm + (margin * 2);
-                    pHeight = processed.height * pxToMm + (margin * 2);
-                    scaleW = processed.width * pxToMm;
-                    scaleH = processed.height * pxToMm;
+                    const wMm = processedFirst.width * pxToMm + (margin * 2);
+                    const hMm = processedFirst.height * pxToMm + (margin * 2);
+                    docOptions.orientation = wMm > hMm ? 'l' : 'p';
+                    docOptions.format = [wMm, hMm];
                 } else {
-                    // Standard sizes A4/Letter
-                    // A4 is 210x297, Letter is 215.9x279.4
-                    const isLandscape = orientationOpt === 'l';
+                    docOptions.orientation = orientationOpt;
+                    docOptions.format = sizeOpt; // 'a4' or 'letter'
+                }
+
+                const doc = new jsPDF(docOptions);
+
+                for (let i = 0; i < images.length; i++) {
+                    const img = images[i];
+                    // Process the image (applies rotation and compression)
+                    const processed = await processImage(img.dataUrl, img.rotation, qualityOpt);
                     
-                    if (sizeOpt === 'a4') {
-                        pWidth = isLandscape ? 297 : 210;
-                        pHeight = isLandscape ? 210 : 297;
-                    } else { // Letter
-                        pWidth = isLandscape ? 279.4 : 215.9;
-                        pHeight = isLandscape ? 215.9 : 279.4;
-                    }
+                    // Determine format and dimensions for this specific page
+                    let pWidth, pHeight;
+                    let scaleW, scaleH;
+                    let x = margin;
+                    let y = margin;
 
-                    const contentW = pWidth - (margin * 2);
-                    const contentH = pHeight - (margin * 2);
-
-                    if (fitOpt === 'contain') {
-                        const imgRatio = processed.width / processed.height;
-                        const contentRatio = contentW / contentH;
-
-                        if (imgRatio > contentRatio) {
-                            scaleW = contentW;
-                            scaleH = contentW / imgRatio;
-                        } else {
-                            scaleH = contentH;
-                            scaleW = contentH * imgRatio;
-                        }
-                        
-                        // Centered inside margin box
-                        x = margin + (contentW - scaleW) / 2;
-                        y = margin + (contentH - scaleH) / 2;
-                    } else { // cover - stretch/fill margin box
-                        scaleW = contentW;
-                        scaleH = contentH;
-                    }
-                }
-
-                // If not the first page, add a new page with appropriate dimensions
-                if (i > 0) {
                     if (sizeOpt === 'original') {
-                        const pOrientation = pWidth > pHeight ? 'l' : 'p';
-                        doc.addPage([pWidth, pHeight], pOrientation);
+                        // Page dimensions unique to this image size
+                        pWidth = processed.width * pxToMm + (margin * 2);
+                        pHeight = processed.height * pxToMm + (margin * 2);
+                        scaleW = processed.width * pxToMm;
+                        scaleH = processed.height * pxToMm;
                     } else {
-                        doc.addPage(sizeOpt, orientationOpt);
+                        // Standard sizes A4/Letter
+                        const isLandscape = orientationOpt === 'l';
+                        
+                        if (sizeOpt === 'a4') {
+                            pWidth = isLandscape ? 297 : 210;
+                            pHeight = isLandscape ? 210 : 297;
+                        } else { // Letter
+                            pWidth = isLandscape ? 279.4 : 215.9;
+                            pHeight = isLandscape ? 215.9 : 279.4;
+                        }
+
+                        const contentW = pWidth - (margin * 2);
+                        const contentH = pHeight - (margin * 2);
+
+                        if (fitOpt === 'contain') {
+                            const imgRatio = processed.width / processed.height;
+                            const contentRatio = contentW / contentH;
+
+                            if (imgRatio > contentRatio) {
+                                scaleW = contentW;
+                                scaleH = contentW / imgRatio;
+                            } else {
+                                scaleH = contentH;
+                                scaleW = contentH * imgRatio;
+                            }
+                            
+                            // Centered inside margin box
+                            x = margin + (contentW - scaleW) / 2;
+                            y = margin + (contentH - scaleH) / 2;
+                        } else { // cover - stretch/fill margin box
+                            scaleW = contentW;
+                            scaleH = contentH;
+                        }
                     }
+
+                    // If not the first page, add a new page with appropriate dimensions
+                    if (i > 0) {
+                        if (sizeOpt === 'original') {
+                            const pOrientation = pWidth > pHeight ? 'l' : 'p';
+                            doc.addPage([pWidth, pHeight], pOrientation);
+                        } else {
+                            doc.addPage(sizeOpt, orientationOpt);
+                        }
+                    }
+
+                    // Add processed image (since it's outputted as canvas.toDataURL('image/jpeg'), format is JPEG)
+                    doc.addImage(processed.dataUrl, 'JPEG', x, y, scaleW, scaleH);
                 }
 
-                // Add processed image (since it's outputted as canvas.toDataURL('image/jpeg'), format is JPEG)
-                doc.addImage(processed.dataUrl, 'JPEG', x, y, scaleW, scaleH);
+                // Save the generated PDF file
+                doc.save(fileName);
             }
-
-            // Save the generated PDF file
-            doc.save(fileName);
-
         } catch (error) {
             console.error('Terjadi kesalahan saat membuat PDF:', error);
             alert('Maaf, terjadi kesalahan saat membuat PDF. Silakan coba lagi.');
