@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Convert Gambar ke PDF - Instan & Aman</title>
-    <meta name="description" content="Ubah gambar JPG, PNG, WebP Anda menjadi file PDF secara cepat, gratis, dan aman langsung di browser Anda tanpa upload ke server.">
+    <title>PicToPDF Suite - Konversi PDF Instan & Bawaan Browser</title>
+    <meta name="description" content="Kumpulan alat pengolah dokumen PDF yang berjalan lokal di browser Anda secara instan, gratis, & aman 100% tanpa upload data.">
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,165 +17,365 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- JSZip CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- pdf.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body>
     <div class="app-container">
-        <!-- Header -->
-        <header class="app-header">
-            <div class="logo">
-                <i data-lucide="file-image" class="logo-icon"></i>
-                <h1>PicTo<span>PDF</span></h1>
-            </div>
-            <p class="tagline">Konversi gambar ke PDF instan, 100% aman di sisi klien tanpa upload data.</p>
-        </header>
+        <!-- View 1: Dashboard Bawaan -->
+        <div id="dashboard-view" class="spa-view">
+            <header class="app-header">
+                <div class="logo">
+                    <i data-lucide="file-image" class="logo-icon"></i>
+                    <h1>PicTo<span>PDF Suite</span></h1>
+                </div>
+                <p class="tagline">Kumpulan alat pengolah dokumen PDF instan, gratis, & 100% berjalan di browser Anda.</p>
+            </header>
 
-        <!-- Main Content Grid -->
-        <main class="app-main">
-            <!-- Left Panel: Upload & Preview -->
-            <section class="panel upload-panel">
-                <!-- Dropzone -->
-                <div class="dropzone" id="dropzone">
-                    <input type="file" id="file-input" multiple accept="image/png, image/jpeg, image/webp" class="file-input-hidden">
-                    <div class="dropzone-content">
-                        <div class="upload-icon-wrapper">
-                            <i data-lucide="upload-cloud" class="upload-icon"></i>
+            <main class="dashboard-main">
+                <!-- Section 1: Convert to PDF -->
+                <div class="dashboard-section">
+                    <h3 class="section-title"><i data-lucide="file-up"></i> Convert to PDF</h3>
+                    <div class="cards-grid">
+                        <div class="card card-active" data-tool="image-to-pdf">
+                            <div class="card-icon-wrapper yellow">
+                                <i data-lucide="image"></i>
+                            </div>
+                            <h4>Image to PDF</h4>
+                            <p>Ubah JPG, PNG, WebP ke file PDF</p>
+                            <span class="badge badge-active">Aktif</span>
                         </div>
-                        <h3>Tarik & lepas gambar di sini</h3>
-                        <p class="upload-hint">Atau klik untuk memilih file dari komputer</p>
-                        <p class="file-types">Mendukung format PNG, JPG, JPEG, dan WebP</p>
+                        <div class="card card-inactive" data-tool="word-to-pdf">
+                            <div class="card-icon-wrapper blue">
+                                <i data-lucide="file-text"></i>
+                            </div>
+                            <h4>Word to PDF</h4>
+                            <p>Ubah file Word DOCX ke PDF</p>
+                            <span class="badge badge-inactive">Perlu Server</span>
+                        </div>
+                        <div class="card card-inactive" data-tool="ppt-to-pdf">
+                            <div class="card-icon-wrapper orange">
+                                <i data-lucide="presentation"></i>
+                            </div>
+                            <h4>PowerPoint to PDF</h4>
+                            <p>Ubah file Slide PPTX ke PDF</p>
+                            <span class="badge badge-inactive">Perlu Server</span>
+                        </div>
+                        <div class="card card-inactive" data-tool="excel-to-pdf">
+                            <div class="card-icon-wrapper green">
+                                <i data-lucide="sheet"></i>
+                            </div>
+                            <h4>Excel to PDF</h4>
+                            <p>Ubah spreadsheet XLSX ke PDF</p>
+                            <span class="badge badge-inactive">Perlu Server</span>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Preview Area -->
-                <div class="preview-section" id="preview-section" style="display: none;">
-                    <div class="preview-header">
-                        <div class="preview-stats">
-                            <i data-lucide="images" class="section-icon"></i>
-                            <h3>Daftar Gambar (<span id="image-count">0</span>)</h3>
+                <!-- Section 2: Convert from PDF -->
+                <div class="dashboard-section">
+                    <h3 class="section-title"><i data-lucide="file-down"></i> Convert from PDF</h3>
+                    <div class="cards-grid">
+                        <div class="card card-active" data-tool="pdf-to-image">
+                            <div class="card-icon-wrapper yellow">
+                                <i data-lucide="images"></i>
+                            </div>
+                            <h4>PDF to JPG</h4>
+                            <p>Ekstrak semua halaman PDF ke gambar JPG</p>
+                            <span class="badge badge-active">Aktif</span>
                         </div>
-                        <button id="btn-clear" class="btn btn-danger-outline btn-sm">
-                            <i data-lucide="trash-2"></i> Bersihkan Semua
+                        <div class="card card-inactive" data-tool="pdf-to-word">
+                            <div class="card-icon-wrapper blue">
+                                <i data-lucide="file-text"></i>
+                            </div>
+                            <h4>PDF to Word</h4>
+                            <p>Ubah PDF ke dokumen Word</p>
+                            <span class="badge badge-inactive">Perlu Server</span>
+                        </div>
+                        <div class="card card-inactive" data-tool="pdf-to-ppt">
+                            <div class="card-icon-wrapper orange">
+                                <i data-lucide="presentation"></i>
+                            </div>
+                            <h4>PDF to PowerPoint</h4>
+                            <p>Ubah PDF ke slide presentasi</p>
+                            <span class="badge badge-inactive">Perlu Server</span>
+                        </div>
+                        <div class="card card-inactive" data-tool="pdf-to-excel">
+                            <div class="card-icon-wrapper green">
+                                <i data-lucide="sheet"></i>
+                            </div>
+                            <h4>PDF to Excel</h4>
+                            <p>Ubah PDF ke spreadsheet Excel</p>
+                            <span class="badge badge-inactive">Perlu Server</span>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- View 2: Image to PDF Tool -->
+        <div id="image-to-pdf-view" class="spa-view" style="display: none;">
+            <header class="tool-header">
+                <button class="btn btn-secondary btn-back">
+                    <i data-lucide="arrow-left"></i> Beranda
+                </button>
+                <div class="tool-title">
+                    <i data-lucide="image" class="tool-title-icon yellow"></i>
+                    <h2>Image to PDF</h2>
+                </div>
+            </header>
+
+            <main class="app-main">
+                <!-- Left Panel: Upload & Preview -->
+                <section class="panel upload-panel">
+                    <!-- Dropzone -->
+                    <div class="dropzone" id="dropzone">
+                        <input type="file" id="file-input" multiple accept="image/png, image/jpeg, image/webp" class="file-input-hidden">
+                        <div class="dropzone-content">
+                            <div class="upload-icon-wrapper">
+                                <i data-lucide="upload-cloud" class="upload-icon"></i>
+                            </div>
+                            <h3>Tarik & lepas gambar di sini</h3>
+                            <p class="upload-hint">Atau klik untuk memilih file dari komputer</p>
+                            <p class="file-types">Mendukung format PNG, JPG, JPEG, dan WebP</p>
+                        </div>
+                    </div>
+
+                    <!-- Preview Area -->
+                    <div class="preview-section" id="preview-section" style="display: none;">
+                        <div class="preview-header">
+                            <div class="preview-stats">
+                                <i data-lucide="images" class="section-icon"></i>
+                                <h3>Daftar Gambar (<span id="image-count">0</span>)</h3>
+                            </div>
+                            <button id="btn-clear" class="btn btn-danger-outline btn-sm">
+                                <i data-lucide="trash-2"></i> Bersihkan Semua
+                            </button>
+                        </div>
+                        <div class="image-list" id="image-list">
+                            <!-- Preview items will be dynamically added here -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Right Panel: Configurations & Actions -->
+                <section class="panel config-panel">
+                    <div class="config-header">
+                        <i data-lucide="sliders" class="section-icon"></i>
+                        <h2>Pengaturan PDF</h2>
+                    </div>
+
+                    <div class="config-form">
+                        <!-- Conversion Mode -->
+                        <div class="form-group">
+                            <label for="conversion-mode">Mode Konversi</label>
+                            <div class="select-wrapper">
+                                <select id="conversion-mode">
+                                    <option value="merge" selected>Gabungkan menjadi Satu PDF</option>
+                                    <option value="separate">Pisah menjadi PDF Masing-Masing (ZIP)</option>
+                                </select>
+                                <i data-lucide="chevron-down" class="select-chevron"></i>
+                            </div>
+                        </div>
+
+                        <!-- Page Size -->
+                        <div class="form-group">
+                            <label for="page-size">Ukuran Halaman</label>
+                            <div class="select-wrapper">
+                                <select id="page-size">
+                                    <option value="a4" selected>A4 (210 x 297 mm)</option>
+                                    <option value="letter">Letter (8.5 x 11 in)</option>
+                                    <option value="original">Sesuaikan Ukuran Gambar</option>
+                                </select>
+                                <i data-lucide="chevron-down" class="select-chevron"></i>
+                            </div>
+                        </div>
+
+                        <!-- Page Orientation -->
+                        <div class="form-group" id="orientation-group">
+                            <label>Orientasi Halaman</label>
+                            <div class="radio-group">
+                                <label class="radio-label">
+                                    <input type="radio" name="orientation" value="p" checked>
+                                    <span class="radio-custom">
+                                        <i data-lucide="file-text" class="radio-icon"></i>
+                                        <span>Potret (Portrait)</span>
+                                    </span>
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="orientation" value="l">
+                                    <span class="radio-custom">
+                                        <i data-lucide="file-text" class="radio-icon landscape-icon"></i>
+                                        <span>Lanskap (Landscape)</span>
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Margins -->
+                        <div class="form-group">
+                            <label for="page-margin">Margin Halaman</label>
+                            <div class="select-wrapper">
+                                <select id="page-margin">
+                                    <option value="0" selected>Tanpa Margin (0mm)</option>
+                                    <option value="10">Tipis (10mm)</option>
+                                    <option value="20">Sedang (20mm)</option>
+                                </select>
+                                <i data-lucide="chevron-down" class="select-chevron"></i>
+                            </div>
+                        </div>
+
+                        <!-- Fit Type -->
+                        <div class="form-group" id="fit-group">
+                            <label for="image-fit">Penskalaan Gambar</label>
+                            <div class="select-wrapper">
+                                <select id="image-fit">
+                                    <option value="contain" selected>Pertahankan Rasio Gambar (Fit)</option>
+                                    <option value="cover">Penuhi Halaman (Stretch/Crop)</option>
+                                </select>
+                                <i data-lucide="chevron-down" class="select-chevron"></i>
+                            </div>
+                        </div>
+
+                        <!-- Image Quality / Compression -->
+                        <div class="form-group">
+                            <label for="image-quality">Kualitas PDF (Ukuran File)</label>
+                            <div class="select-wrapper">
+                                <select id="image-quality">
+                                    <option value="1.0" selected>Tinggi (Kualitas Asli)</option>
+                                    <option value="0.75">Sedang (Rekomendasi - Kompresi)</option>
+                                    <option value="0.5">Rendah (Ukuran Terkecil)</option>
+                                </select>
+                                <i data-lucide="chevron-down" class="select-chevron"></i>
+                            </div>
+                        </div>
+
+                        <!-- Output File Name -->
+                        <div class="form-group">
+                            <label for="file-name">Nama File PDF</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="file-name" placeholder="dokumen-konversi" value="dokumen-konversi">
+                                <span class="input-suffix" id="file-name-suffix">.pdf</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="actions-wrapper">
+                        <button id="btn-convert" class="btn btn-primary btn-block btn-lg" disabled>
+                            <i data-lucide="file-down"></i> Konversi ke PDF
                         </button>
                     </div>
-                    <div class="image-list" id="image-list">
-                        <!-- Preview items will be dynamically added here -->
-                    </div>
+                </section>
+            </main>
+        </div>
+
+        <!-- View 3: PDF to JPG Tool -->
+        <div id="pdf-to-image-view" class="spa-view" style="display: none;">
+            <header class="tool-header">
+                <button class="btn btn-secondary btn-back">
+                    <i data-lucide="arrow-left"></i> Beranda
+                </button>
+                <div class="tool-title">
+                    <i data-lucide="images" class="tool-title-icon yellow"></i>
+                    <h2>PDF to JPG</h2>
                 </div>
-            </section>
+            </header>
 
-            <!-- Right Panel: Configurations & Actions -->
-            <section class="panel config-panel">
-                <div class="config-header">
-                    <i data-lucide="sliders" class="section-icon"></i>
-                    <h2>Pengaturan PDF</h2>
-                </div>
-
-                <div class="config-form">
-                    <!-- Conversion Mode -->
-                    <div class="form-group">
-                        <label for="conversion-mode">Mode Konversi</label>
-                        <div class="select-wrapper">
-                            <select id="conversion-mode">
-                                <option value="merge" selected>Gabungkan menjadi Satu PDF</option>
-                                <option value="separate">Pisah menjadi PDF Masing-Masing (ZIP)</option>
-                            </select>
-                            <i data-lucide="chevron-down" class="select-chevron"></i>
+            <main class="app-main">
+                <!-- Left Panel: PDF Upload & Preview -->
+                <section class="panel upload-panel">
+                    <!-- Dropzone PDF -->
+                    <div class="dropzone" id="dropzone-pdf">
+                        <input type="file" id="file-input-pdf" accept="application/pdf" class="file-input-hidden">
+                        <div class="dropzone-content">
+                            <div class="upload-icon-wrapper">
+                                <i data-lucide="file-text" class="upload-icon"></i>
+                            </div>
+                            <h3>Tarik & lepas file PDF di sini</h3>
+                            <p class="upload-hint">Atau klik untuk memilih file dari komputer</p>
+                            <p class="file-types">Mendukung format file PDF (.pdf)</p>
                         </div>
                     </div>
 
-                    <!-- Page Size -->
-                    <div class="form-group">
-                        <label for="page-size">Ukuran Halaman</label>
-                        <div class="select-wrapper">
-                            <select id="page-size">
-                                <option value="a4" selected>A4 (210 x 297 mm)</option>
-                                <option value="letter">Letter (8.5 x 11 in)</option>
-                                <option value="original">Sesuaikan Ukuran Gambar</option>
-                            </select>
-                            <i data-lucide="chevron-down" class="select-chevron"></i>
+                    <!-- PDF Preview Section -->
+                    <div class="preview-section" id="preview-section-pdf" style="display: none;">
+                        <div class="preview-header">
+                            <div class="preview-stats">
+                                <i data-lucide="eye" class="section-icon"></i>
+                                <h3>Halaman PDF Terdeteksi (<span id="pdf-page-count">0</span>)</h3>
+                            </div>
+                            <button id="btn-clear-pdf" class="btn btn-danger-outline btn-sm">
+                                <i data-lucide="trash-2"></i> Hapus File
+                            </button>
+                        </div>
+                        <div class="pdf-page-grid" id="pdf-page-grid">
+                            <!-- Page canvases loaded dynamically -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Right Panel: Configurations & Actions -->
+                <section class="panel config-panel">
+                    <div class="config-header">
+                        <i data-lucide="sliders" class="section-icon"></i>
+                        <h2>Pengaturan JPG</h2>
+                    </div>
+
+                    <div class="config-form">
+                        <!-- JPG Quality -->
+                        <div class="form-group">
+                            <label for="jpg-quality">Kualitas Gambar</label>
+                            <div class="select-wrapper">
+                                <select id="jpg-quality">
+                                    <option value="1.0" selected>Tinggi (Kualitas Asli)</option>
+                                    <option value="0.8">Sedang (Rekomendasi)</option>
+                                    <option value="0.6">Rendah (Ukuran Kecil)</option>
+                                </select>
+                                <i data-lucide="chevron-down" class="select-chevron"></i>
+                            </div>
+                        </div>
+
+                        <!-- Render scale / DPI -->
+                        <div class="form-group">
+                            <label for="pdf-render-scale">Resolusi Ekstraksi</label>
+                            <div class="select-wrapper">
+                                <select id="pdf-render-scale">
+                                    <option value="1.0">Normal (96 DPI)</option>
+                                    <option value="2.0" selected>Tinggi (150 DPI - Rekomendasi)</option>
+                                    <option value="3.0">Sangat Tinggi (300 DPI - HD)</option>
+                                </select>
+                                <i data-lucide="chevron-down" class="select-chevron"></i>
+                            </div>
+                        </div>
+
+                        <!-- Output File Name -->
+                        <div class="form-group">
+                            <label for="pdf-output-name">Nama File Ekstrak</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="pdf-output-name" placeholder="halaman-pdf" value="halaman-pdf">
+                                <span class="input-suffix" id="pdf-output-suffix">.zip</span>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Page Orientation -->
-                    <div class="form-group" id="orientation-group">
-                        <label>Orientasi Halaman</label>
-                        <div class="radio-group">
-                            <label class="radio-label">
-                                <input type="radio" name="orientation" value="p" checked>
-                                <span class="radio-custom">
-                                    <i data-lucide="file-text" class="radio-icon"></i>
-                                    <span>Potret (Portrait)</span>
-                                </span>
-                            </label>
-                            <label class="radio-label">
-                                <input type="radio" name="orientation" value="l">
-                                <span class="radio-custom">
-                                    <i data-lucide="file-text" class="radio-icon landscape-icon"></i>
-                                    <span>Lanskap (Landscape)</span>
-                                </span>
-                            </label>
-                        </div>
+                    <div class="actions-wrapper">
+                        <button id="btn-convert-pdf" class="btn btn-primary btn-block btn-lg" disabled>
+                            <i data-lucide="file-image"></i> Ekstrak ke JPG
+                        </button>
                     </div>
+                </section>
+            </main>
+        </div>
 
-                    <!-- Margins -->
-                    <div class="form-group">
-                        <label for="page-margin">Margin Halaman</label>
-                        <div class="select-wrapper">
-                            <select id="page-margin">
-                                <option value="0" selected>Tanpa Margin (0mm)</option>
-                                <option value="10">Tipis (10mm)</option>
-                                <option value="20">Sedang (20mm)</option>
-                            </select>
-                            <i data-lucide="chevron-down" class="select-chevron"></i>
-                        </div>
-                    </div>
-
-                    <!-- Fit Type -->
-                    <div class="form-group" id="fit-group">
-                        <label for="image-fit">Penskalaan Gambar</label>
-                        <div class="select-wrapper">
-                            <select id="image-fit">
-                                <option value="contain" selected>Pertahankan Rasio Gambar (Fit)</option>
-                                <option value="cover">Penuhi Halaman (Stretch/Crop)</option>
-                            </select>
-                            <i data-lucide="chevron-down" class="select-chevron"></i>
-                        </div>
-                    </div>
-
-                    <!-- Image Quality / Compression -->
-                    <div class="form-group">
-                        <label for="image-quality">Kualitas PDF (Ukuran File)</label>
-                        <div class="select-wrapper">
-                            <select id="image-quality">
-                                <option value="1.0" selected>Tinggi (Kualitas Asli)</option>
-                                <option value="0.75">Sedang (Rekomendasi - Kompresi)</option>
-                                <option value="0.5">Rendah (Ukuran Terkecil)</option>
-                            </select>
-                            <i data-lucide="chevron-down" class="select-chevron"></i>
-                        </div>
-                    </div>
-
-                    <!-- Output File Name -->
-                    <div class="form-group">
-                        <label for="file-name">Nama File PDF</label>
-                        <div class="input-wrapper">
-                            <input type="text" id="file-name" placeholder="dokumen-konversi" value="dokumen-konversi">
-                            <span class="input-suffix" id="file-name-suffix">.pdf</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="actions-wrapper">
-                    <button id="btn-convert" class="btn btn-primary btn-block btn-lg" disabled>
-                        <i data-lucide="file-down"></i> Konversi ke PDF
-                    </button>
-                </div>
-            </section>
-        </main>
+        <!-- Notification Toast -->
+        <div id="toast-notification" class="toast" style="display: none;">
+            <i data-lucide="info" class="toast-icon"></i>
+            <span id="toast-message">Notifikasi</span>
+        </div>
 
         <!-- Footer -->
         <footer class="app-footer">
-            <p>&copy; 2026 PicToPDF. Dibuat dengan cinta untuk keamanan data Anda. Semua pemrosesan terjadi lokal di browser Anda.</p>
+            <p>&copy; 2026 PicToPDF Suite. Dibuat dengan cinta untuk keamanan data Anda. Semua pemrosesan terjadi lokal di browser Anda.</p>
         </footer>
     </div>
 
