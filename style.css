@@ -946,6 +946,56 @@ input[type="text"]:focus {
     }
 }
 
+/* Logo Row & Settings Button */
+.logo-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+    position: relative;
+    max-width: 450px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.btn-settings {
+    background-color: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: 50%;
+    width: 2.25rem;
+    height: 2.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    transition: var(--transition-fast);
+    cursor: pointer;
+}
+
+.btn-settings:hover {
+    color: var(--text-primary);
+    border-color: var(--color-primary);
+    box-shadow: var(--accent-glow);
+}
+
+.settings-panel {
+    background-color: rgba(255, 255, 255, 0.02) !important;
+    border-color: var(--border-color) !important;
+    animation: slideInDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* Responsive Mobile Adjustments for Dashboard & SPA Views */
 @media (max-width: 600px) {
     .app-container {

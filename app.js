@@ -1,12 +1,18 @@
 // JavaScript: PicToPDF Suite - Core Controller & Modules
 
 document.addEventListener('DOMContentLoaded', () => {
-    // --- 1. SPA ROUTING & NAVIGATION ---
+    // --- 1. SPA ROUTING, SETTINGS & NAVIGATION ---
     const dashboardView = document.getElementById('dashboard-view');
     const imageToPdfView = document.getElementById('image-to-pdf-view');
     const pdfToImageView = document.getElementById('pdf-to-image-view');
     const officeConverterView = document.getElementById('office-converter-view');
     
+    // Settings elements
+    const btnToggleSettings = document.getElementById('btn-toggle-settings');
+    const globalSettingsPanel = document.getElementById('global-settings-panel');
+    const globalCloudConvertKeyInput = document.getElementById('global-cloudconvert-key');
+    const btnToggleGlobalKeyVisibility = document.getElementById('btn-toggle-global-key-visibility');
+
     const toast = document.getElementById('toast-notification');
     const toastMessage = document.getElementById('toast-message');
 
@@ -24,11 +30,81 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentSourceExtensions = []; // allowed extensions
     let currentTargetFormat = "";      // target format ('pdf', 'docx', etc.)
 
+    // Load initial API key
+    let cachedKey = localStorage.getItem('cloudconvert_api_key') || window.CLOUDCONVERT_API_KEY || '';
+    globalCloudConvertKeyInput.value = cachedKey;
+
+    // Toggle Settings panel on dashboard
+    btnToggleSettings.addEventListener('click', () => {
+        const isHidden = globalSettingsPanel.style.display === 'none';
+        globalSettingsPanel.style.display = isHidden ? 'block' : 'none';
+        
+        // Toggle settings button icon rotation / focus visually
+        if (isHidden) {
+            globalCloudConvertKeyInput.focus();
+        }
+    });
+
+    btnToggleGlobalKeyVisibility.addEventListener('click', () => {
+        globalCloudConvertKeyInput.type = globalCloudConvertKeyInput.type === 'password' ? 'text' : 'password';
+        const eyeIcon = btnToggleGlobalKeyVisibility.querySelector('i');
+        eyeIcon.setAttribute('data-lucide', globalCloudConvertKeyInput.type === 'text' ? 'eye-off' : 'eye');
+        lucide.createIcons();
+    });
+
+    // Update state of Office Cards dynamically based on API Key presence
+    function updateOfficeCardsState() {
+        const apiKey = globalCloudConvertKeyInput.value.trim();
+        const officeCards = document.querySelectorAll('.office-card');
+        
+        officeCards.forEach(card => {
+            const badge = card.querySelector('.badge');
+            
+            if (apiKey) {
+                // Active state
+                card.classList.remove('card-inactive');
+                card.classList.add('card-active');
+                badge.classList.remove('badge-inactive');
+                badge.classList.add('badge-active');
+                badge.textContent = 'Aktif (API)';
+            } else {
+                // Inactive state
+                card.classList.remove('card-active');
+                card.classList.add('card-inactive');
+                badge.classList.remove('badge-active');
+                badge.classList.add('badge-inactive');
+                badge.textContent = 'Perlu API Key';
+            }
+        });
+    }
+
+    // Run card update initially
+    updateOfficeCardsState();
+
+    // Event listener for global API key input changes
+    globalCloudConvertKeyInput.addEventListener('input', () => {
+        const val = globalCloudConvertKeyInput.value.trim();
+        localStorage.setItem('cloudconvert_api_key', val);
+        // Sync with the office view key field
+        cloudConvertKeyInput.value = val;
+        updateOfficeCardsState();
+    });
+
+
     // Active tool card routing
-    document.querySelectorAll('.card-active').forEach(card => {
+    document.querySelectorAll('.card').forEach(card => {
         card.addEventListener('click', () => {
             const tool = card.getAttribute('data-tool');
             
+            // Check if it is an Office card and currently inactive
+            if (card.classList.contains('office-card') && card.classList.contains('card-inactive')) {
+                showToast("Masukkan CloudConvert API Key di ikon gerigi atas untuk mengaktifkan fitur ini.");
+                // Expand settings panel and focus
+                globalSettingsPanel.style.display = 'block';
+                globalCloudConvertKeyInput.focus();
+                return;
+            }
+
             // Hide all views
             document.querySelectorAll('.spa-view').forEach(view => {
                 view.style.display = 'none';
@@ -40,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (tool === 'pdf-to-image') {
                 pdfToImageView.style.display = 'flex';
             } else {
-                // It is one of the 6 CloudConvert Office tools
+                // It is one of the 6 active CloudConvert Office tools
                 setupOfficeConverter(tool);
                 officeConverterView.style.display = 'flex';
             }
@@ -683,25 +759,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const officeOutputSuffix = document.getElementById('office-output-suffix');
     const btnConvertOffice = document.getElementById('btn-convert-office');
 
-    // API Key Handling
-    const savedApiKey = localStorage.getItem('cloudconvert_api_key') || window.CLOUDCONVERT_API_KEY || '';
-    cloudConvertKeyInput.value = savedApiKey;
+    // Sync input keys
+    cloudConvertKeyInput.value = cachedKey;
+
+    cloudConvertKeyInput.addEventListener('input', () => {
+        const val = cloudConvertKeyInput.value.trim();
+        localStorage.setItem('cloudconvert_api_key', val);
+        globalCloudConvertKeyInput.value = val;
+        updateOfficeCardsState();
+    });
 
     btnToggleKeyVisibility.addEventListener('click', () => {
         cloudConvertKeyInput.type = cloudConvertKeyInput.type === 'password' ? 'text' : 'password';
-        // Toggle icon visually
         const eyeIcon = btnToggleKeyVisibility.querySelector('i');
-        if (cloudConvertKeyInput.type === 'text') {
-            eyeIcon.setAttribute('data-lucide', 'eye-off');
-        } else {
-            eyeIcon.setAttribute('data-lucide', 'eye');
-        }
+        eyeIcon.setAttribute('data-lucide', cloudConvertKeyInput.type === 'text' ? 'eye-off' : 'eye');
         lucide.createIcons();
     });
 
     // Map tool to config setup
     function setupOfficeConverter(tool) {
-        // Defaults
         let title = "Word to PDF";
         let icon = "file-text";
         let extensionsLabel = "Mendukung format file .docx, .doc";
@@ -758,7 +834,6 @@ document.addEventListener('DOMContentLoaded', () => {
             dropzoneMsg = "Pilih file PDF Anda";
         }
 
-        // Apply to UI
         officeToolTitle.textContent = title;
         officeToolIcon.setAttribute('data-lucide', icon);
         officeDropzoneIcon.setAttribute('data-lucide', icon === 'presentation' ? 'presentation' : (icon === 'sheet' ? 'sheet' : 'file-up'));
@@ -809,7 +884,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleOfficeFile(file) {
         if (!file) return;
 
-        // Verify extension
         const ext = file.name.substring(file.name.lastIndexOf('.') + 1).toLowerCase();
         if (!currentSourceExtensions.includes(ext)) {
             showToast(`Ekstensi file .${ext} tidak didukung untuk modul ini.`);
@@ -817,17 +891,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         currentOfficeFile = file;
-
-        // Preview rendering
         officeFileName.textContent = file.name;
         officeFileSize.textContent = formatBytes(file.size);
         
-        // Update default output name
         const dotIdx = file.name.lastIndexOf('.');
         const baseName = dotIdx !== -1 ? file.name.substring(0, dotIdx) : file.name;
         officeOutputNameInput.value = `${baseName}-converted`;
 
-        // Update preview icons matching file type
         const isPdf = ext === 'pdf';
         const docIcon = isPdf ? 'file-text' : (['pptx','ppt'].includes(ext) ? 'presentation' : (['xlsx','xls'].includes(ext) ? 'sheet' : 'file-text'));
         officePreviewIcon.setAttribute('data-lucide', docIcon);
@@ -853,9 +923,7 @@ document.addEventListener('DOMContentLoaded', () => {
         clearOfficeConverterState();
     });
 
-    // CloudConvert Job Flow Execution
     async function runCloudConvertJob(file, inputExt, outputExt, apiKey) {
-        // 1. Create Job Request
         const createJobUrl = 'https://api.cloudconvert.com/v2/jobs';
         const jobPayload = {
             tasks: {
@@ -891,7 +959,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const jobData = await jobResponse.json();
         
-        // 2. Upload file to AWS S3 using S3 form payload details from the import task
         const importTask = jobData.data.tasks.find(t => t.name === 'import-1');
         const uploadForm = importTask.result.form;
 
@@ -910,7 +977,6 @@ document.addEventListener('DOMContentLoaded', () => {
             throw new Error('Gagal mengunggah file ke server konversi S3.');
         }
 
-        // 3. Poll export-1 task until status is finished
         const exportTaskId = jobData.data.tasks.find(t => t.name === 'export-1').id;
         const taskStatusUrl = `https://api.cloudconvert.com/v2/tasks/${exportTaskId}`;
 
@@ -918,7 +984,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let finalFileUrl = '';
         let loopCount = 0;
 
-        // Poll every 2.5 seconds, max timeout 150 seconds (60 iterations)
         while (!exportTaskFinished && loopCount < 60) {
             await new Promise(resolve => setTimeout(resolve, 2500));
             loopCount++;
@@ -960,9 +1025,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Save key to local storage for user convenience
-        localStorage.setItem('cloudconvert_api_key', apiKey);
-
         const originalBtnText = btnConvertOffice.innerHTML;
         btnConvertOffice.disabled = true;
         
@@ -974,11 +1036,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 outputName += `.${outputExt}`;
             }
 
-            // Stage 1: Uploading
             btnConvertOffice.innerHTML = `<div class="loading-spinner"></div> Mengunggah file...`;
             const fileUrl = await runCloudConvertJob(currentOfficeFile, inputExt, outputExt, apiKey);
 
-            // Stage 2: Finished -> Download URL
             btnConvertOffice.innerHTML = `<div class="loading-spinner"></div> Mengunduh hasil...`;
             const link = document.createElement('a');
             link.href = fileUrl;

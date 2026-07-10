@@ -25,11 +25,32 @@
         <!-- View 1: Dashboard Bawaan -->
         <div id="dashboard-view" class="spa-view">
             <header class="app-header">
-                <div class="logo">
-                    <i data-lucide="file-image" class="logo-icon"></i>
-                    <h1>PicTo<span>PDF Suite</span></h1>
+                <div class="logo-row">
+                    <div class="logo">
+                        <i data-lucide="file-image" class="logo-icon"></i>
+                        <h1>PicTo<span>PDF Suite</span></h1>
+                    </div>
+                    <button id="btn-toggle-settings" class="btn-icon btn-settings" title="Pengaturan Kunci API">
+                        <i data-lucide="settings"></i>
+                    </button>
                 </div>
                 <p class="tagline">Kumpulan alat pengolah dokumen PDF instan, gratis, & 100% berjalan di browser Anda.</p>
+                
+                <!-- Collapsible Settings Panel on Dashboard -->
+                <div id="global-settings-panel" class="panel settings-panel" style="display: none; margin-top: 1rem; text-align: left; padding: 1.25rem;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="global-cloudconvert-key" style="font-weight: 700;">CloudConvert API Key</label>
+                        <div class="input-wrapper" style="margin-top: 0.5rem;">
+                            <input type="password" id="global-cloudconvert-key" placeholder="Masukkan API Key CloudConvert Anda untuk mengaktifkan alat Office" style="padding-right: 3rem;">
+                            <button class="btn-icon" id="btn-toggle-global-key-visibility" type="button" title="Tampilkan/Sembunyikan" style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); width: 2rem; height: 2rem;">
+                                <i data-lucide="eye"></i>
+                            </button>
+                        </div>
+                        <p class="file-types" style="margin-top: 0.5rem; line-height: 1.4;">
+                            Kunci ini disimpan lokal secara aman di browser Anda. Belum punya kunci? <a href="https://cloudconvert.com/dashboard/api/v2/keys" target="_blank" style="color: var(--color-primary); font-weight: 700; text-decoration: underline;">Buat API Key gratis di sini</a>.
+                        </p>
+                    </div>
+                </div>
             </header>
 
             <main class="dashboard-main">
@@ -45,29 +66,29 @@
                             <p>Ubah JPG, PNG, WebP ke file PDF</p>
                             <span class="badge badge-active">Aktif</span>
                         </div>
-                        <div class="card card-active" data-tool="word-to-pdf">
+                        <div class="card office-card card-inactive" data-tool="word-to-pdf">
                             <div class="card-icon-wrapper blue">
                                 <i data-lucide="file-text"></i>
                             </div>
                             <h4>Word to PDF</h4>
                             <p>Ubah file Word DOCX ke PDF</p>
-                            <span class="badge badge-active">Aktif (API)</span>
+                            <span class="badge badge-inactive">Perlu API Key</span>
                         </div>
-                        <div class="card card-active" data-tool="ppt-to-pdf">
+                        <div class="card office-card card-inactive" data-tool="ppt-to-pdf">
                             <div class="card-icon-wrapper orange">
                                 <i data-lucide="presentation"></i>
                             </div>
                             <h4>PowerPoint to PDF</h4>
                             <p>Ubah file Slide PPTX ke PDF</p>
-                            <span class="badge badge-active">Aktif (API)</span>
+                            <span class="badge badge-inactive">Perlu API Key</span>
                         </div>
-                        <div class="card card-active" data-tool="excel-to-pdf">
+                        <div class="card office-card card-inactive" data-tool="excel-to-pdf">
                             <div class="card-icon-wrapper green">
                                 <i data-lucide="sheet"></i>
                             </div>
                             <h4>Excel to PDF</h4>
                             <p>Ubah spreadsheet XLSX ke PDF</p>
-                            <span class="badge badge-active">Aktif (API)</span>
+                            <span class="badge badge-inactive">Perlu API Key</span>
                         </div>
                     </div>
                 </div>
@@ -84,29 +105,29 @@
                             <p>Ekstrak semua halaman PDF ke gambar JPG</p>
                             <span class="badge badge-active">Aktif</span>
                         </div>
-                        <div class="card card-active" data-tool="pdf-to-word">
+                        <div class="card office-card card-inactive" data-tool="pdf-to-word">
                             <div class="card-icon-wrapper blue">
                                 <i data-lucide="file-text"></i>
                             </div>
                             <h4>PDF to Word</h4>
                             <p>Ubah PDF ke dokumen Word DOCX</p>
-                            <span class="badge badge-active">Aktif (API)</span>
+                            <span class="badge badge-inactive">Perlu API Key</span>
                         </div>
-                        <div class="card card-active" data-tool="pdf-to-ppt">
+                        <div class="card office-card card-inactive" data-tool="pdf-to-ppt">
                             <div class="card-icon-wrapper orange">
                                 <i data-lucide="presentation"></i>
                             </div>
                             <h4>PDF to PowerPoint</h4>
                             <p>Ubah PDF ke slide presentasi PPTX</p>
-                            <span class="badge badge-active">Aktif (API)</span>
+                            <span class="badge badge-inactive">Perlu API Key</span>
                         </div>
-                        <div class="card card-active" data-tool="pdf-to-excel">
+                        <div class="card office-card card-inactive" data-tool="pdf-to-excel">
                             <div class="card-icon-wrapper green">
                                 <i data-lucide="sheet"></i>
                             </div>
                             <h4>PDF to Excel</h4>
                             <p>Ubah PDF ke spreadsheet Excel XLSX</p>
-                            <span class="badge badge-active">Aktif (API)</span>
+                            <span class="badge badge-inactive">Perlu API Key</span>
                         </div>
                     </div>
                 </div>
