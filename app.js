@@ -1078,21 +1078,21 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     let activeHandle = null;
 
-    // Helper to calculate workspace-scaled dimensions for mobile & desktop
+    // Helper to calculate workspace-scaled dimensions for mobile & desktop dynamically
     function getEditorDimensions(imgW, imgH) {
-        const isMobile = window.innerWidth <= 768;
-        const workWidth = isMobile 
-            ? Math.min(window.innerWidth * 0.9, 500) 
-            : Math.min(window.innerWidth * 0.55 - 40, 560);
-        const workHeight = isMobile
-            ? Math.min(window.innerHeight * 0.45, 380)
-            : Math.min(window.innerHeight * 0.55, 450);
-            
-        let w = workWidth;
-        let h = workWidth * (imgH / imgW);
-        if (h > workHeight) {
-            h = workHeight;
-            w = workHeight * (imgW / imgH);
+        const parent = cropCanvasContainer.parentElement;
+        const workWidth = parent ? parent.clientWidth : 300;
+        const workHeight = parent ? parent.clientHeight : 300;
+        
+        const padding = 16;
+        const maxW = Math.max(100, workWidth - padding * 2);
+        const maxH = Math.max(100, workHeight - padding * 2);
+        
+        let w = maxW;
+        let h = maxW * (imgH / imgW);
+        if (h > maxH) {
+            h = maxH;
+            w = maxH * (imgW / imgH);
         }
         return { width: w, height: h };
     }
@@ -1460,6 +1460,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const imgW = editorImgElement.naturalWidth;
             const imgH = editorImgElement.naturalHeight;
             
+            // Show modal first to ensure workspace has clientWidth/clientHeight
+            cropModal.style.display = 'flex';
+            
             const dimensions = getEditorDimensions(imgW, imgH);
             const canvasW = dimensions.width;
             const canvasH = dimensions.height;
@@ -1488,7 +1491,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             updateHandlePositions();
-            cropModal.style.display = 'flex';
             btnEditorSave.disabled = false;
             lucide.createIcons();
         };

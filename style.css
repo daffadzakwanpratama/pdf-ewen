@@ -1290,6 +1290,17 @@ input[type="password"]:focus {
     justify-content: center;
     transition: transform 0.15s ease, background-color 0.15s ease;
 }
+.corner-handle::after {
+    content: '';
+    position: absolute;
+    width: 46px;
+    height: 46px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: transparent;
+    border-radius: 50%;
+}
 
 .corner-handle:hover, .corner-handle.active {
     transform: translate(-50%, -50%) scale(1.25);
@@ -1493,22 +1504,76 @@ input[type="password"]:focus {
 
 /* Modal Responsive Stacking */
 @media (max-width: 768px) {
+    .modal-overlay {
+        padding: 0;
+    }
     .modal-container {
-        height: 95vh;
+        height: 100vh;
+        width: 100%;
+        max-width: 100%;
+        border-radius: 0;
+        border: none;
     }
     .modal-body {
         grid-template-columns: 1fr;
-        overflow-y: auto;
-        gap: 1rem;
+        grid-template-rows: 1fr auto;
+        overflow: hidden;
+        gap: 0.75rem;
+        padding: 0.75rem;
     }
     .editor-workspace {
-        min-height: 280px;
+        height: 100%;
+        min-height: 0;
+        flex-grow: 1;
         padding: 0.5rem;
     }
     #crop-source-canvas {
-        max-height: 38vh;
+        max-height: 100%;
+        max-width: 100%;
     }
     .editor-sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
         overflow-y: visible;
+    }
+    .sidebar-section {
+        margin-top: 0 !important;
+    }
+    .sidebar-section h3 {
+        font-size: 0.8rem;
+        margin-bottom: 0.4rem;
+    }
+    .filter-options-grid {
+        display: flex;
+        flex-direction: row;
+        overflow-x: auto;
+        width: 100%;
+        gap: 0.5rem;
+        padding-bottom: 0.25rem;
+        scrollbar-width: thin;
+    }
+    .btn-filter {
+        flex-direction: row;
+        padding: 0.5rem 0.75rem;
+        flex-shrink: 0;
+        gap: 0.4rem;
+        font-size: 0.75rem;
+    }
+    .filter-preview-box {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+    .filter-preview-box::after {
+        display: none !important;
+    }
+    .sidebar-actions-row {
+        gap: 0.5rem;
+    }
+    .sidebar-actions-row .btn-sm {
+        padding: 0.5rem !important;
+        font-size: 0.75rem !important;
     }
 }
