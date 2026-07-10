@@ -1078,6 +1078,25 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     let activeHandle = null;
 
+    // Helper to calculate workspace-scaled dimensions for mobile & desktop
+    function getEditorDimensions(imgW, imgH) {
+        const isMobile = window.innerWidth <= 768;
+        const workWidth = isMobile 
+            ? Math.min(window.innerWidth * 0.9, 500) 
+            : Math.min(window.innerWidth * 0.55 - 40, 560);
+        const workHeight = isMobile
+            ? Math.min(window.innerHeight * 0.45, 380)
+            : Math.min(window.innerHeight * 0.55, 450);
+            
+        let w = workWidth;
+        let h = workWidth * (imgH / imgW);
+        if (h > workHeight) {
+            h = workHeight;
+            w = workHeight * (imgW / imgH);
+        }
+        return { width: w, height: h };
+    }
+
     // DOM Elements
     const cropModal = document.getElementById('crop-modal');
     const btnCropModalClose = document.getElementById('btn-crop-modal-close');
@@ -1441,17 +1460,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const imgW = editorImgElement.naturalWidth;
             const imgH = editorImgElement.naturalHeight;
             
-            // Constrain editor sizes
-            const workWidth = Math.min(window.innerWidth * 0.95 - 300, 560);
-            const workHeight = Math.min(window.innerHeight * 0.5, 420);
-            
-            let canvasW = workWidth;
-            let canvasH = workWidth * (imgH / imgW);
-            
-            if (canvasH > workHeight) {
-                canvasH = workHeight;
-                canvasW = workHeight * (imgW / imgH);
-            }
+            const dimensions = getEditorDimensions(imgW, imgH);
+            const canvasW = dimensions.width;
+            const canvasH = dimensions.height;
             
             cropCanvas.width = canvasW;
             cropCanvas.height = canvasH;
@@ -1532,15 +1543,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const imgW = editorImgElement.naturalWidth;
                 const imgH = editorImgElement.naturalHeight;
                 
-                const workWidth = Math.min(window.innerWidth * 0.95 - 300, 560);
-                const workHeight = Math.min(window.innerHeight * 0.5, 420);
-                
-                let newW = workWidth;
-                let newH = workWidth * (imgH / imgW);
-                if (newH > workHeight) {
-                    newH = workHeight;
-                    newW = workHeight * (imgW / imgH);
-                }
+                const dimensions = getEditorDimensions(imgW, imgH);
+                const newW = dimensions.width;
+                const newH = dimensions.height;
                 
                 cropCanvas.width = newW;
                 cropCanvas.height = newH;
