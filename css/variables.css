@@ -1,0 +1,28 @@
+/* CSS Design System & Variables */
+:root {
+    --bg-primary: #0b0f19;
+    --bg-secondary: #131926;
+    --bg-panel: #1e2640;
+    --border-color: #2b3554;
+
+    --accent-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+    --accent-glow: 0 0 20px rgba(99, 102, 241, 0.4);
+
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+
+    --color-primary: #6366f1;
+    --color-primary-hover: #4f46e5;
+    --color-success: #10b981;
+    --color-danger: #ef4444;
+    --color-danger-hover: #dc2626;
+    --color-danger-bg: rgba(239, 68, 68, 0.15);
+
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 20px;
+
+    --transition-fast: 0.15s ease;
+    --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
