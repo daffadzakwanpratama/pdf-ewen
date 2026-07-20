@@ -1082,7 +1082,6 @@ input[type="password"]:focus {
 
     .card p {
         display: none;
-        /* Hide descriptions on mobile for ultra-compact layout */
     }
 
     .badge {
@@ -1091,7 +1090,6 @@ input[type="password"]:focus {
         margin-top: auto;
     }
 
-    /* Layout Tool Views responsive */
     .tool-header {
         margin-bottom: 1.5rem;
         flex-direction: column;
@@ -1255,7 +1253,6 @@ input[type="password"]:focus {
     background-color: rgba(30, 38, 64, 0.2);
 }
 
-/* Editor Workspace (Left) */
 .editor-workspace {
     display: flex;
     flex-direction: column;
@@ -1277,7 +1274,6 @@ input[type="password"]:focus {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     border-radius: var(--radius-sm);
     overflow: visible;
-    /* we want handles to sit half outside */
     max-width: 100%;
     max-height: calc(85vh - 200px);
 }
@@ -1290,7 +1286,6 @@ input[type="password"]:focus {
     background-color: #05070c;
 }
 
-/* Corner handles */
 .corner-handle {
     position: absolute;
     width: 26px;
@@ -1334,7 +1329,6 @@ input[type="password"]:focus {
     border-radius: 50%;
 }
 
-/* Magnifier glass lens overlay */
 .magnifier-lens {
     position: absolute;
     width: 120px;
@@ -1371,7 +1365,6 @@ input[type="password"]:focus {
     flex-shrink: 0;
 }
 
-/* Editor Sidebar (Right) */
 .editor-sidebar {
     display: flex;
     flex-direction: column;
@@ -1516,7 +1509,6 @@ input[type="password"]:focus {
     gap: 0.75rem;
 }
 
-/* Edit Button in main view image-item */
 .btn-edit {
     color: var(--color-primary) !important;
 }
@@ -1526,7 +1518,6 @@ input[type="password"]:focus {
     color: #818cf8 !important;
 }
 
-/* Modal Responsive Stacking */
 @media (max-width: 768px) {
     .modal-overlay {
         padding: 0;
@@ -1598,46 +1589,5 @@ input[type="password"]:focus {
         width: 18px;
         height: 18px;
         border-radius: 50%;
-        flex-shrink: 0;
     }
-
-    .filter-preview-box::after {
-        display: none !important;
-    }
-
-    .sidebar-actions-row {
-        gap: 0.5rem;
-    }
-
-    .sidebar-actions-row .btn-sm {
-        padding: 0.5rem !important;
-        font-size: 0.75rem !important;
-    }
-}
-
-/* Wizard Step Visibility Rules */
-.modal-container.step-1 .sidebar-section.filter-section {
-    display: none !important;
-}
-.modal-container.step-1 .sidebar-section.actions-section {
-    display: block !important;
-}
-
-.modal-container.step-2 .sidebar-section.filter-section {
-    display: block !important;
-}
-.modal-container.step-2 .sidebar-section.actions-section {
-    display: none !important;
-}
-.modal-container.step-2 .corner-handle {
-    display: none !important;
-}
-.modal-container.step-2 .magnifier-lens {
-    display: none !important;
-}
-.modal-container.step-2 .editor-help-text {
-    visibility: hidden !important;
-    height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
 }

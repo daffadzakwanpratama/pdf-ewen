@@ -1433,7 +1433,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             setEditorStep(1);
             btnEditorSave.disabled = false;
-        };;
+        };
 
         editorImgElement.src = imgData.originalDataUrl;
     }
@@ -1756,5 +1756,5 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }, 50);
         }
-    });;
+    });
 });
