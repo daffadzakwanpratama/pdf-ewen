@@ -456,3 +456,45 @@ input[type="password"]:focus {
     flex-direction: column;
     width: 100%;
 }
+
+/* Mobile & Android Device Optimization */
+@media (max-width: 640px) {
+    .app-container {
+        padding: 1.25rem 1rem;
+    }
+
+    .app-header {
+        margin-bottom: 1.75rem;
+    }
+
+    .logo h1 {
+        font-size: 1.65rem;
+    }
+
+    .logo-icon {
+        width: 2rem;
+        height: 2rem;
+    }
+
+    .tagline {
+        font-size: 0.85rem;
+    }
+
+    .panel {
+        padding: 1.25rem;
+        border-radius: var(--radius-md);
+    }
+
+    .btn-lg {
+        padding: 0.85rem 1.25rem;
+        font-size: 0.95rem;
+    }
+
+    .toast {
+        bottom: 1rem;
+        right: 1rem;
+        left: 1rem;
+        padding: 0.85rem 1rem;
+        font-size: 0.85rem;
+    }
+}
