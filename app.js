@@ -1,17 +1,11 @@
 // JavaScript: PicToPDF Suite - Core Controller & Modules
 
 document.addEventListener('DOMContentLoaded', () => {
-    // --- 1. SPA ROUTING, SETTINGS & NAVIGATION ---
+    // --- 1. SPA ROUTING & NAVIGATION ---
     const dashboardView = document.getElementById('dashboard-view');
     const imageToPdfView = document.getElementById('image-to-pdf-view');
     const pdfToImageView = document.getElementById('pdf-to-image-view');
-    const officeConverterView = document.getElementById('office-converter-view');
-
-    // Settings elements
-    const btnToggleSettings = document.getElementById('btn-toggle-settings');
-    const globalSettingsPanel = document.getElementById('global-settings-panel');
-    const globalCloudConvertKeyInput = document.getElementById('global-cloudconvert-key');
-    const btnToggleGlobalKeyVisibility = document.getElementById('btn-toggle-global-key-visibility');
+    const compressPdfView = document.getElementById('compress-pdf-view');
 
     const toast = document.getElementById('toast-notification');
     const toastMessage = document.getElementById('toast-message');
@@ -26,84 +20,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 3500);
     }
 
-    // Office Tool Configurations State
-    let currentSourceExtensions = []; // allowed extensions
-    let currentTargetFormat = "";      // target format ('pdf', 'docx', etc.)
-
-    // Load initial API key
-    let cachedKey = localStorage.getItem('cloudconvert_api_key') || window.CLOUDCONVERT_API_KEY || '';
-    globalCloudConvertKeyInput.value = cachedKey;
-
-    // Toggle Settings panel on dashboard
-    btnToggleSettings.addEventListener('click', () => {
-        const isHidden = globalSettingsPanel.style.display === 'none';
-        globalSettingsPanel.style.display = isHidden ? 'block' : 'none';
-
-        // Toggle settings button icon rotation / focus visually
-        if (isHidden) {
-            globalCloudConvertKeyInput.focus();
-        }
-    });
-
-    btnToggleGlobalKeyVisibility.addEventListener('click', () => {
-        globalCloudConvertKeyInput.type = globalCloudConvertKeyInput.type === 'password' ? 'text' : 'password';
-        const eyeIcon = btnToggleGlobalKeyVisibility.querySelector('i');
-        eyeIcon.setAttribute('data-lucide', globalCloudConvertKeyInput.type === 'text' ? 'eye-off' : 'eye');
-        lucide.createIcons();
-    });
-
-    // Update state of Office Cards dynamically based on API Key presence
-    function updateOfficeCardsState() {
-        const apiKey = globalCloudConvertKeyInput.value.trim();
-        const officeCards = document.querySelectorAll('.office-card');
-
-        officeCards.forEach(card => {
-            const badge = card.querySelector('.badge');
-
-            if (apiKey) {
-                // Active state
-                card.classList.remove('card-inactive');
-                card.classList.add('card-active');
-                badge.classList.remove('badge-inactive');
-                badge.classList.add('badge-active');
-                badge.textContent = 'Aktif (API)';
-            } else {
-                // Inactive state
-                card.classList.remove('card-active');
-                card.classList.add('card-inactive');
-                badge.classList.remove('badge-active');
-                badge.classList.add('badge-inactive');
-                badge.textContent = 'Perlu API Key';
-            }
-        });
-    }
-
-    // Run card update initially
-    updateOfficeCardsState();
-
-    // Event listener for global API key input changes
-    globalCloudConvertKeyInput.addEventListener('input', () => {
-        const val = globalCloudConvertKeyInput.value.trim();
-        localStorage.setItem('cloudconvert_api_key', val);
-        // Sync with the office view key field
-        cloudConvertKeyInput.value = val;
-        updateOfficeCardsState();
-    });
-
-
     // Active tool card routing
     document.querySelectorAll('.card').forEach(card => {
         card.addEventListener('click', () => {
             const tool = card.getAttribute('data-tool');
-
-            // Check if it is an Office card and currently inactive
-            if (card.classList.contains('office-card') && card.classList.contains('card-inactive')) {
-                showToast("Masukkan CloudConvert API Key di ikon gerigi atas untuk mengaktifkan fitur ini.");
-                // Expand settings panel and focus
-                globalSettingsPanel.style.display = 'block';
-                globalCloudConvertKeyInput.focus();
-                return;
-            }
 
             // Hide all views
             document.querySelectorAll('.spa-view').forEach(view => {
@@ -115,10 +35,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 imageToPdfView.style.display = 'flex';
             } else if (tool === 'pdf-to-image') {
                 pdfToImageView.style.display = 'flex';
-            } else {
-                // It is one of the 6 active CloudConvert Office tools
-                setupOfficeConverter(tool);
-                officeConverterView.style.display = 'flex';
+            } else if (tool === 'compress-pdf') {
+                compressPdfView.style.display = 'flex';
             }
         });
     });
@@ -136,9 +54,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // Clear inputs and states on return to avoid memory footprint
             clearImageToPdfState();
             clearPdfToImageState();
-            clearOfficeConverterState();
+            clearCompressPdfState();
         });
     });
+
 
 
     // --- 2. MODULE: IMAGE TO PDF ---
@@ -738,332 +657,222 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // --- 4. MODULE: COMPRESS PDF ---
+    let currentCompressFile = null;
+    let currentCompressDoc = null;
 
-    // --- 4. MODULE: UNIFIED OFFICE CONVERTER (CloudConvert V2) ---
-    let currentOfficeFile = null;
+    // DOM References - Compress PDF
+    const dropzoneCompress = document.getElementById('dropzone-compress');
+    const fileInputCompress = document.getElementById('file-input-compress');
+    const previewSectionCompress = document.getElementById('preview-section-compress');
+    const compressPageCount = document.getElementById('compress-page-count');
+    const compressFileName = document.getElementById('compress-file-name');
+    const compressFileSize = document.getElementById('compress-file-size');
+    const btnClearCompress = document.getElementById('btn-clear-compress');
+    const compressPageGrid = document.getElementById('compress-page-grid');
 
-    // DOM References - Office Converter
-    const dropzoneOffice = document.getElementById('dropzone-office');
-    const fileInputOffice = document.getElementById('file-input-office');
-    const previewSectionOffice = document.getElementById('preview-section-office');
-    const btnClearOffice = document.getElementById('btn-clear-office');
+    const compressLevelSelect = document.getElementById('compress-level');
+    const compressDpiSelect = document.getElementById('compress-dpi');
+    const compressOutputNameInput = document.getElementById('compress-output-name');
+    const btnCompressPdf = document.getElementById('btn-compress-pdf');
 
-    const officeToolIcon = document.getElementById('office-tool-icon');
-    const officeToolTitle = document.getElementById('office-tool-title');
-    const officeDropzoneIcon = document.getElementById('office-dropzone-icon');
-    const officeDropzoneText = document.getElementById('office-dropzone-text');
-    const officeFileTypes = document.getElementById('office-file-types');
-
-    const officePreviewIcon = document.getElementById('office-preview-icon');
-    const officeFileName = document.getElementById('office-file-name');
-    const officeFileSize = document.getElementById('office-file-size');
-
-    const cloudConvertKeyInput = document.getElementById('cloudconvert-key');
-    const btnToggleKeyVisibility = document.getElementById('btn-toggle-key-visibility');
-
-    const officeTargetFormatInput = document.getElementById('office-target-format');
-    const officeOutputNameInput = document.getElementById('office-output-name');
-    const officeOutputSuffix = document.getElementById('office-output-suffix');
-    const btnConvertOffice = document.getElementById('btn-convert-office');
-
-    // Sync input keys
-    cloudConvertKeyInput.value = cachedKey;
-
-    cloudConvertKeyInput.addEventListener('input', () => {
-        const val = cloudConvertKeyInput.value.trim();
-        localStorage.setItem('cloudconvert_api_key', val);
-        globalCloudConvertKeyInput.value = val;
-        updateOfficeCardsState();
-    });
-
-    btnToggleKeyVisibility.addEventListener('click', () => {
-        cloudConvertKeyInput.type = cloudConvertKeyInput.type === 'password' ? 'text' : 'password';
-        const eyeIcon = btnToggleKeyVisibility.querySelector('i');
-        eyeIcon.setAttribute('data-lucide', cloudConvertKeyInput.type === 'text' ? 'eye-off' : 'eye');
-        lucide.createIcons();
-    });
-
-    // Map tool to config setup
-    function setupOfficeConverter(tool) {
-        let title = "Word to PDF";
-        let icon = "file-text";
-        let extensionsLabel = "Mendukung format file .docx, .doc";
-        let acceptValue = ".docx, .doc";
-        let dropzoneMsg = "Pilih dokumen Word Anda";
-
-        if (tool === 'word-to-pdf') {
-            title = "Word to PDF";
-            icon = "file-text";
-            currentSourceExtensions = ['docx', 'doc'];
-            currentTargetFormat = 'pdf';
-            extensionsLabel = "Mendukung format file .docx, .doc";
-            acceptValue = ".docx, .doc";
-            dropzoneMsg = "Pilih dokumen Word Anda";
-        } else if (tool === 'ppt-to-pdf') {
-            title = "PowerPoint to PDF";
-            icon = "presentation";
-            currentSourceExtensions = ['pptx', 'ppt'];
-            currentTargetFormat = 'pdf';
-            extensionsLabel = "Mendukung file presentasi .pptx, .ppt";
-            acceptValue = ".pptx, .ppt";
-            dropzoneMsg = "Pilih file PowerPoint Anda";
-        } else if (tool === 'excel-to-pdf') {
-            title = "Excel to PDF";
-            icon = "sheet";
-            currentSourceExtensions = ['xlsx', 'xls'];
-            currentTargetFormat = 'pdf';
-            extensionsLabel = "Mendukung spreadsheet .xlsx, .xls";
-            acceptValue = ".xlsx, .xls";
-            dropzoneMsg = "Pilih spreadsheet Excel Anda";
-        } else if (tool === 'pdf-to-word') {
-            title = "PDF to Word";
-            icon = "file-text";
-            currentSourceExtensions = ['pdf'];
-            currentTargetFormat = 'docx';
-            extensionsLabel = "Mendukung dokumen PDF (.pdf)";
-            acceptValue = ".pdf";
-            dropzoneMsg = "Pilih file PDF Anda";
-        } else if (tool === 'pdf-to-ppt') {
-            title = "PDF to PowerPoint";
-            icon = "presentation";
-            currentSourceExtensions = ['pdf'];
-            currentTargetFormat = 'pptx';
-            extensionsLabel = "Mendukung dokumen PDF (.pdf)";
-            acceptValue = ".pdf";
-            dropzoneMsg = "Pilih file PDF Anda";
-        } else if (tool === 'pdf-to-excel') {
-            title = "PDF to Excel";
-            icon = "sheet";
-            currentSourceExtensions = ['pdf'];
-            currentTargetFormat = 'xlsx';
-            extensionsLabel = "Mendukung dokumen PDF (.pdf)";
-            acceptValue = ".pdf";
-            dropzoneMsg = "Pilih file PDF Anda";
-        }
-
-        officeToolTitle.textContent = title;
-        officeToolIcon.setAttribute('data-lucide', icon);
-        officeDropzoneIcon.setAttribute('data-lucide', icon === 'presentation' ? 'presentation' : (icon === 'sheet' ? 'sheet' : 'file-up'));
-        officeDropzoneText.textContent = dropzoneMsg;
-        officeFileTypes.textContent = extensionsLabel;
-
-        fileInputOffice.accept = acceptValue;
-        officeTargetFormatInput.value = currentTargetFormat.toUpperCase();
-        officeOutputSuffix.textContent = `.${currentTargetFormat}`;
-
-        lucide.createIcons();
-    }
-
-    // Drag-drop Office file
+    // Drag-drop Compress PDF
     ['dragenter', 'dragover'].forEach(eventName => {
-        dropzoneOffice.addEventListener(eventName, (e) => {
+        dropzoneCompress.addEventListener(eventName, (e) => {
             e.preventDefault();
             e.stopPropagation();
-            dropzoneOffice.classList.add('dragover');
+            dropzoneCompress.classList.add('dragover');
         }, false);
     });
 
     ['dragleave', 'drop'].forEach(eventName => {
-        dropzoneOffice.addEventListener(eventName, (e) => {
+        dropzoneCompress.addEventListener(eventName, (e) => {
             e.preventDefault();
             e.stopPropagation();
-            dropzoneOffice.classList.remove('dragover');
+            dropzoneCompress.classList.remove('dragover');
         }, false);
     });
 
-    dropzoneOffice.addEventListener('drop', (e) => {
-        if (e.dataTransfer.files.length > 0) {
-            handleOfficeFile(e.dataTransfer.files[0]);
+    dropzoneCompress.addEventListener('drop', (e) => {
+        handleCompressPdfFile(e.dataTransfer.files[0]);
+    });
+
+    dropzoneCompress.addEventListener('click', () => {
+        fileInputCompress.click();
+    });
+
+    fileInputCompress.addEventListener('change', () => {
+        if (fileInputCompress.files.length > 0) {
+            handleCompressPdfFile(fileInputCompress.files[0]);
         }
+        fileInputCompress.value = '';
     });
 
-    dropzoneOffice.addEventListener('click', () => {
-        fileInputOffice.click();
-    });
-
-    fileInputOffice.addEventListener('change', () => {
-        if (fileInputOffice.files.length > 0) {
-            handleOfficeFile(fileInputOffice.files[0]);
-        }
-        fileInputOffice.value = '';
-    });
-
-    function handleOfficeFile(file) {
-        if (!file) return;
-
-        const ext = file.name.substring(file.name.lastIndexOf('.') + 1).toLowerCase();
-        if (!currentSourceExtensions.includes(ext)) {
-            showToast(`Ekstensi file .${ext} tidak didukung untuk modul ini.`);
+    function handleCompressPdfFile(file) {
+        if (!file || file.type !== 'application/pdf') {
+            showToast('Silakan pilih file dokumen PDF (.pdf) saja.');
             return;
         }
 
-        currentOfficeFile = file;
-        officeFileName.textContent = file.name;
-        officeFileSize.textContent = formatBytes(file.size);
-
+        currentCompressFile = file;
         const dotIdx = file.name.lastIndexOf('.');
         const baseName = dotIdx !== -1 ? file.name.substring(0, dotIdx) : file.name;
-        officeOutputNameInput.value = `${baseName}-converted`;
+        compressOutputNameInput.value = `${baseName}-terkompres`;
+        compressFileName.textContent = file.name;
+        compressFileSize.textContent = formatBytes(file.size);
 
-        const isPdf = ext === 'pdf';
-        const docIcon = isPdf ? 'file-text' : (['pptx', 'ppt'].includes(ext) ? 'presentation' : (['xlsx', 'xls'].includes(ext) ? 'sheet' : 'file-text'));
-        officePreviewIcon.setAttribute('data-lucide', docIcon);
+        const reader = new FileReader();
+        reader.onload = async function (e) {
+            try {
+                btnCompressPdf.disabled = true;
+                btnCompressPdf.innerHTML = `<div class="loading-spinner"></div> Membaca PDF...`;
 
-        dropzoneOffice.style.display = 'none';
-        previewSectionOffice.style.display = 'flex';
-        btnConvertOffice.disabled = false;
+                const typedarray = new Uint8Array(e.target.result);
+                currentCompressDoc = await pdfjsLib.getDocument(typedarray).promise;
 
-        lucide.createIcons();
-    }
-
-    function clearOfficeConverterState() {
-        currentOfficeFile = null;
-        previewSectionOffice.style.display = 'none';
-        dropzoneOffice.style.display = 'block';
-        btnConvertOffice.disabled = true;
-        btnConvertOffice.innerHTML = `<i data-lucide="refresh-cw"></i> Mulai Konversi`;
-        officeOutputNameInput.value = 'hasil-konversi';
-        lucide.createIcons();
-    }
-
-    btnClearOffice.addEventListener('click', () => {
-        clearOfficeConverterState();
-    });
-
-    async function runCloudConvertJob(file, inputExt, outputExt, apiKey) {
-        const createJobUrl = 'https://api.cloudconvert.com/v2/jobs';
-        const jobPayload = {
-            tasks: {
-                'import-1': {
-                    operation: 'import/upload'
-                },
-                'convert-1': {
-                    operation: 'convert',
-                    input: 'import-1',
-                    input_format: inputExt,
-                    output_format: outputExt
-                },
-                'export-1': {
-                    operation: 'export/url',
-                    input: 'convert-1'
-                }
+                renderCompressPdfThumbnails();
+            } catch (err) {
+                console.error(err);
+                showToast("Gagal membaca dokumen PDF. File mungkin rusak.");
+                clearCompressPdfState();
             }
         };
-
-        const jobResponse = await fetch(createJobUrl, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(jobPayload)
-        });
-
-        if (!jobResponse.ok) {
-            const errData = await jobResponse.json();
-            throw new Error(errData.message || 'Gagal membuat tugas konversi di server CloudConvert.');
-        }
-
-        const jobData = await jobResponse.json();
-
-        const importTask = jobData.data.tasks.find(t => t.name === 'import-1');
-        const uploadForm = importTask.result.form;
-
-        const formData = new FormData();
-        for (const [key, val] of Object.entries(uploadForm.parameters)) {
-            formData.append(key, val);
-        }
-        formData.append('file', file);
-
-        const uploadResponse = await fetch(uploadForm.url, {
-            method: 'POST',
-            body: formData
-        });
-
-        if (!uploadResponse.ok) {
-            throw new Error('Gagal mengunggah file ke server konversi S3.');
-        }
-
-        const exportTaskId = jobData.data.tasks.find(t => t.name === 'export-1').id;
-        const taskStatusUrl = `https://api.cloudconvert.com/v2/tasks/${exportTaskId}`;
-
-        let exportTaskFinished = false;
-        let finalFileUrl = '';
-        let loopCount = 0;
-
-        while (!exportTaskFinished && loopCount < 60) {
-            await new Promise(resolve => setTimeout(resolve, 2500));
-            loopCount++;
-
-            const taskResponse = await fetch(taskStatusUrl, {
-                headers: {
-                    'Authorization': `Bearer ${apiKey}`
-                }
-            });
-
-            if (!taskResponse.ok) {
-                throw new Error('Gagal memantau status konversi.');
-            }
-
-            const taskData = await taskResponse.json();
-            const status = taskData.data.status;
-
-            if (status === 'finished') {
-                exportTaskFinished = true;
-                finalFileUrl = taskData.data.result.files[0].url;
-            } else if (status === 'failed') {
-                throw new Error(taskData.data.message || 'Proses konversi gagal di server CloudConvert.');
-            }
-        }
-
-        if (!exportTaskFinished) {
-            throw new Error('Waktu konversi habis (Timeout). File Anda mungkin terlalu besar.');
-        }
-
-        return finalFileUrl;
+        reader.readAsArrayBuffer(file);
     }
 
-    btnConvertOffice.addEventListener('click', async () => {
-        if (!currentOfficeFile) return;
+    async function renderCompressPdfThumbnails() {
+        if (!currentCompressDoc) return;
 
-        const apiKey = cloudConvertKeyInput.value.trim();
-        if (!apiKey) {
-            showToast("Harap masukkan API Key CloudConvert Anda terlebih dahulu.");
-            return;
+        compressPageCount.textContent = currentCompressDoc.numPages;
+        dropzoneCompress.style.display = 'none';
+        previewSectionCompress.style.display = 'flex';
+        btnCompressPdf.disabled = false;
+        btnCompressPdf.innerHTML = `<i data-lucide="file-archive"></i> Kompres PDF Sekarang`;
+        lucide.createIcons();
+
+        compressPageGrid.innerHTML = '';
+
+        for (let i = 1; i <= currentCompressDoc.numPages; i++) {
+            const card = document.createElement('div');
+            card.className = 'pdf-page-card';
+            card.innerHTML = `
+                <canvas class="pdf-page-canvas"></canvas>
+                <div class="pdf-page-label">Halaman ${i}</div>
+            `;
+            compressPageGrid.appendChild(card);
+
+            try {
+                const page = await currentCompressDoc.getPage(i);
+                const viewport = page.getViewport({ scale: 0.35 });
+                const canvas = card.querySelector('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                await page.render({
+                    canvasContext: ctx,
+                    viewport: viewport
+                }).promise;
+            } catch (err) {
+                console.error(`Gagal merender pratinjau halaman ${i}:`, err);
+            }
         }
+    }
 
-        const originalBtnText = btnConvertOffice.innerHTML;
-        btnConvertOffice.disabled = true;
+    function clearCompressPdfState() {
+        currentCompressFile = null;
+        currentCompressDoc = null;
+        compressPageGrid.innerHTML = '';
+        previewSectionCompress.style.display = 'none';
+        dropzoneCompress.style.display = 'block';
+        btnCompressPdf.disabled = true;
+        btnCompressPdf.innerHTML = `<i data-lucide="file-archive"></i> Kompres PDF Sekarang`;
+        compressOutputNameInput.value = 'dokumen-terkompres';
+        lucide.createIcons();
+    }
+
+    btnClearCompress.addEventListener('click', () => {
+        clearCompressPdfState();
+    });
+
+    btnCompressPdf.addEventListener('click', async () => {
+        if (!currentCompressDoc || !currentCompressFile) return;
+        const originalBtnText = btnCompressPdf.innerHTML;
+        btnCompressPdf.disabled = true;
 
         try {
-            const inputExt = currentOfficeFile.name.substring(currentOfficeFile.name.lastIndexOf('.') + 1).toLowerCase();
-            const outputExt = currentTargetFormat;
-            let outputName = officeOutputNameInput.value.trim() || 'hasil-konversi';
-            if (!outputName.endsWith(`.${outputExt}`)) {
-                outputName += `.${outputExt}`;
+            const { jsPDF } = window.jspdf;
+            const levelOpt = compressLevelSelect.value;
+            const renderScale = parseFloat(compressDpiSelect.value);
+
+            let qualityOpt = 0.6;
+            if (levelOpt === 'high') qualityOpt = 0.35;
+            if (levelOpt === 'low') qualityOpt = 0.8;
+
+            let outName = compressOutputNameInput.value.trim() || 'dokumen-terkompres';
+            if (!outName.endsWith('.pdf')) outName += '.pdf';
+
+            const pxToMm = 0.264583;
+            let doc = null;
+
+            for (let i = 1; i <= currentCompressDoc.numPages; i++) {
+                btnCompressPdf.innerHTML = `<div class="loading-spinner"></div> Mengompres Halaman ${i} dari ${currentCompressDoc.numPages}...`;
+
+                const page = await currentCompressDoc.getPage(i);
+                const viewport = page.getViewport({ scale: renderScale });
+                const canvas = document.createElement('canvas');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                const ctx = canvas.getContext('2d');
+
+                await page.render({
+                    canvasContext: ctx,
+                    viewport: viewport
+                }).promise;
+
+                const pageImgData = canvas.toDataURL('image/jpeg', qualityOpt);
+                const pageWMm = viewport.width * pxToMm;
+                const pageHMm = viewport.height * pxToMm;
+                const orientation = pageWMm > pageHMm ? 'l' : 'p';
+
+                if (i === 1) {
+                    doc = new jsPDF({
+                        orientation: orientation,
+                        unit: 'mm',
+                        format: [pageWMm, pageHMm]
+                    });
+                } else {
+                    doc.addPage([pageWMm, pageHMm], orientation);
+                }
+
+                doc.addImage(pageImgData, 'JPEG', 0, 0, pageWMm, pageHMm);
             }
 
-            btnConvertOffice.innerHTML = `<div class="loading-spinner"></div> Mengunggah file...`;
-            const fileUrl = await runCloudConvertJob(currentOfficeFile, inputExt, outputExt, apiKey);
+            const compressedBlob = doc.output('blob');
+            const originalSize = currentCompressFile.size;
+            const newSize = compressedBlob.size;
+            const diffBytes = originalSize - newSize;
+            const percentSaved = Math.round((diffBytes / originalSize) * 100);
 
-            btnConvertOffice.innerHTML = `<div class="loading-spinner"></div> Mengunduh hasil...`;
             const link = document.createElement('a');
-            link.href = fileUrl;
-            link.download = outputName;
+            link.href = URL.createObjectURL(compressedBlob);
+            link.download = outName;
             link.click();
 
-            showToast("Konversi dokumen berhasil!");
-            clearOfficeConverterState();
+            if (percentSaved > 0) {
+                showToast(`PDF Berhasil Dikompres! Ukuran: ${formatBytes(originalSize)} → ${formatBytes(newSize)} (Hemat ${percentSaved}%)`);
+            } else {
+                showToast(`PDF Berhasil Dikompres! Ukuran hasil: ${formatBytes(newSize)}`);
+            }
         } catch (error) {
             console.error(error);
-            showToast(error.message || "Gagal melakukan konversi dokumen.");
+            showToast("Terjadi kesalahan saat mengompresi PDF.");
         } finally {
-            btnConvertOffice.disabled = false;
-            btnConvertOffice.innerHTML = originalBtnText;
+            btnCompressPdf.disabled = false;
+            btnCompressPdf.innerHTML = originalBtnText;
             lucide.createIcons();
         }
     });
-
 
     // --- 5. MODULE: CROP & PERSPECTIVE TRANSFORM (DOCUMENT SCANNER) ---
     // State Variables for Crop Modal
