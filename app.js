@@ -113,7 +113,37 @@ document.addEventListener('DOMContentLoaded', () => {
         fileInput.value = '';
     });
 
-    function handleFiles(files) {
+    function generateThumbnail(dataUrl, maxDim = 240) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+                let w = img.naturalWidth;
+                let h = img.naturalHeight;
+                if (w > maxDim || h > maxDim) {
+                    if (w > h) {
+                        h = Math.round((h * maxDim) / w);
+                        w = maxDim;
+                    } else {
+                        w = Math.round((w * maxDim) / h);
+                        h = maxDim;
+                    }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                const thumbData = canvas.toDataURL('image/jpeg', 0.65);
+                canvas.width = 0;
+                canvas.height = 0;
+                resolve(thumbData);
+            };
+            img.onerror = () => resolve(dataUrl);
+            img.src = dataUrl;
+        });
+    }
+
+    async function handleFiles(files) {
         const fileList = Array.from(files);
         const imageFiles = fileList.filter(file => file.type.startsWith('image/'));
 
@@ -122,29 +152,36 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        let loadedCount = 0;
-        imageFiles.forEach(file => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                images.push({
-                    id: `img-${Date.now()}-${imageIdCounter++}`,
-                    name: file.name,
-                    size: file.size,
-                    type: file.type,
-                    rotation: 0,
-                    originalDataUrl: e.target.result,
-                    dataUrl: e.target.result,
-                    cropPoints: null,
-                    activeFilter: 'original'
-                });
-                loadedCount++;
+        btnConvert.disabled = true;
 
-                if (loadedCount === imageFiles.length) {
-                    renderImages();
-                }
-            };
-            reader.readAsDataURL(file);
-        });
+        for (let i = 0; i < imageFiles.length; i++) {
+            const file = imageFiles[i];
+            const dataUrl = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.readAsDataURL(file);
+            });
+
+            const thumbUrl = await generateThumbnail(dataUrl, 240);
+
+            images.push({
+                id: `img-${Date.now()}-${imageIdCounter++}`,
+                name: file.name,
+                size: file.size,
+                type: file.type,
+                rotation: 0,
+                originalDataUrl: dataUrl,
+                dataUrl: dataUrl,
+                thumbUrl: thumbUrl,
+                cropPoints: null,
+                activeFilter: 'original'
+            });
+
+            // Yield control back to browser event loop to prevent UI lockup
+            await new Promise(r => setTimeout(r, 0));
+        }
+
+        renderImages();
     }
 
     function formatBytes(bytes) {
@@ -176,7 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const rotateScale = img.rotation % 180 === 0 ? 1 : 0.8;
 
             item.innerHTML = `
-                <img src="${img.dataUrl}" alt="${img.name}" class="item-thumbnail" style="transform: rotate(${img.rotation}deg) scale(${rotateScale})">
+                <img src="${img.thumbUrl || img.dataUrl}" alt="${img.name}" class="item-thumbnail" style="transform: rotate(${img.rotation}deg) scale(${rotateScale})">
                 <div class="item-details">
                     <div class="item-name" title="${img.name}">${img.name}</div>
                     <div class="item-meta">
@@ -262,29 +299,55 @@ document.addEventListener('DOMContentLoaded', () => {
         fileNameSuffix.textContent = conversionModeSelect.value === 'separate' ? '.zip' : '.pdf';
     });
 
-    function processImage(dataUrl, rotationAngle, quality) {
+    function processImage(dataUrl, rotationAngle, quality, maxDim = 4096) {
         return new Promise((resolve) => {
             const img = new Image();
             img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
+                let naturalW = img.naturalWidth;
+                let naturalH = img.naturalHeight;
 
                 if (rotationAngle === 90 || rotationAngle === 270) {
-                    canvas.width = img.naturalHeight;
-                    canvas.height = img.naturalWidth;
-                } else {
-                    canvas.width = img.naturalWidth;
-                    canvas.height = img.naturalHeight;
+                    const temp = naturalW;
+                    naturalW = naturalH;
+                    naturalH = temp;
                 }
+
+                // Smart downscaling safety cap (max 4096px - 4K resolution)
+                let renderW = naturalW;
+                let renderH = naturalH;
+                if (renderW > maxDim || renderH > maxDim) {
+                    if (renderW > renderH) {
+                        renderH = Math.round((renderH * maxDim) / renderW);
+                        renderW = maxDim;
+                    } else {
+                        renderW = Math.round((renderW * maxDim) / renderH);
+                        renderH = maxDim;
+                    }
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = renderW;
+                canvas.height = renderH;
+                const ctx = canvas.getContext('2d');
 
                 ctx.translate(canvas.width / 2, canvas.height / 2);
                 ctx.rotate((rotationAngle * Math.PI) / 180);
-                ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+
+                const drawW = (rotationAngle === 90 || rotationAngle === 270) ? renderH : renderW;
+                const drawH = (rotationAngle === 90 || rotationAngle === 270) ? renderW : renderH;
+
+                ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
+
+                const resDataUrl = canvas.toDataURL('image/jpeg', quality);
+
+                // Clear canvas memory
+                canvas.width = 0;
+                canvas.height = 0;
 
                 resolve({
-                    dataUrl: canvas.toDataURL('image/jpeg', quality),
-                    width: canvas.width,
-                    height: canvas.height
+                    dataUrl: resDataUrl,
+                    width: renderW,
+                    height: renderH
                 });
             };
             img.src = dataUrl;
@@ -312,6 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const zip = new JSZip();
 
                 for (let i = 0; i < images.length; i++) {
+                    btnConvert.innerHTML = `<div class="loading-spinner"></div> Memproses Gambar ${i + 1} dari ${images.length}...`;
                     const img = images[i];
                     const processed = await processImage(img.dataUrl, img.rotation, qualityOpt);
 
@@ -360,8 +424,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                     singleDoc.addImage(processed.dataUrl, 'JPEG', x, y, scaleW, scaleH);
                     zip.file(`${(img.name.substring(0, img.name.lastIndexOf('.')) || img.name)}.pdf`, singleDoc.output('blob'));
+
+                    // Yield execution to Garbage Collector
+                    await new Promise(r => setTimeout(r, 10));
                 }
 
+                btnConvert.innerHTML = `<div class="loading-spinner"></div> Membuat file ZIP...`;
                 const zipBlob = await zip.generateAsync({ type: 'blob' });
                 if (!fileName.endsWith('.zip')) fileName += '.zip';
                 const link = document.createElement('a');
@@ -371,6 +439,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast("Berhasil membuat file ZIP konversi!");
             } else {
                 if (!fileName.endsWith('.pdf')) fileName += '.pdf';
+                btnConvert.innerHTML = `<div class="loading-spinner"></div> Menyiapkan dokumen PDF...`;
                 const processedFirst = await processImage(images[0].dataUrl, images[0].rotation, qualityOpt);
                 let docOptions = { unit: 'mm' };
 
@@ -387,6 +456,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const doc = new jsPDF(docOptions);
 
                 for (let i = 0; i < images.length; i++) {
+                    btnConvert.innerHTML = `<div class="loading-spinner"></div> Memproses Gambar ${i + 1} dari ${images.length}...`;
                     const img = images[i];
                     const processed = await processImage(img.dataUrl, img.rotation, qualityOpt);
 
@@ -432,6 +502,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                     doc.addImage(processed.dataUrl, 'JPEG', x, y, scaleW, scaleH);
+
+                    // Yield execution to Garbage Collector
+                    await new Promise(r => setTimeout(r, 10));
                 }
 
                 doc.save(fileName);
@@ -543,7 +616,10 @@ document.addEventListener('DOMContentLoaded', () => {
         pdfOutputSuffix.textContent = currentPdfDoc.numPages === 1 ? '.jpg' : '.zip';
         pdfPageGrid.innerHTML = '';
 
-        for (let i = 1; i <= currentPdfDoc.numPages; i++) {
+        // Safely render up to 36 thumbnails to prevent DOM bloat on huge PDFs
+        const maxThumbnails = Math.min(currentPdfDoc.numPages, 36);
+
+        for (let i = 1; i <= maxThumbnails; i++) {
             const card = document.createElement('div');
             card.className = 'pdf-page-card';
             card.innerHTML = `
@@ -567,6 +643,22 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (err) {
                 console.error(`Gagal merender pratinjau halaman ${i}:`, err);
             }
+
+            if (i % 5 === 0) {
+                await new Promise(r => setTimeout(r, 10));
+            }
+        }
+
+        if (currentPdfDoc.numPages > 36) {
+            const moreBadge = document.createElement('div');
+            moreBadge.className = 'pdf-page-card';
+            moreBadge.style.justifyContent = 'center';
+            moreBadge.style.color = 'var(--text-secondary)';
+            moreBadge.style.fontSize = '0.85rem';
+            moreBadge.style.textAlign = 'center';
+            moreBadge.style.padding = '1.5rem 0.5rem';
+            moreBadge.innerHTML = `+${currentPdfDoc.numPages - 36} halaman lagi<br><span style="font-size:0.75rem; opacity:0.8;">Semua akan tetap diekstrak</span>`;
+            pdfPageGrid.appendChild(moreBadge);
         }
     }
 
@@ -598,6 +690,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let outName = pdfOutputNameInput.value.trim() || 'halaman-pdf';
 
             if (currentPdfDoc.numPages === 1) {
+                btnConvertPdf.innerHTML = `<div class="loading-spinner"></div> Mengekstrak Halaman 1...`;
                 const page = await currentPdfDoc.getPage(1);
                 const viewport = page.getViewport({ scale: scaleOpt });
                 const canvas = document.createElement('canvas');
@@ -611,6 +704,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }).promise;
 
                 const imgUrl = canvas.toDataURL('image/jpeg', qualityOpt);
+                canvas.width = 0;
+                canvas.height = 0;
+
                 if (!outName.endsWith('.jpg')) outName += '.jpg';
 
                 const link = document.createElement('a');
@@ -622,6 +718,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const zip = new JSZip();
 
                 for (let i = 1; i <= currentPdfDoc.numPages; i++) {
+                    btnConvertPdf.innerHTML = `<div class="loading-spinner"></div> Mengekstrak Halaman ${i} dari ${currentPdfDoc.numPages}...`;
+
                     const page = await currentPdfDoc.getPage(i);
                     const viewport = page.getViewport({ scale: scaleOpt });
                     const canvas = document.createElement('canvas');
@@ -634,11 +732,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         viewport: viewport
                     }).promise;
 
-                    const imgUrl = canvas.toDataURL('image/jpeg', qualityOpt);
-                    const base64Data = imgUrl.substring(imgUrl.indexOf(',') + 1);
-                    zip.file(`${outName}-halaman-${i}.jpg`, base64Data, { base64: true });
+                    // Convert canvas directly to Blob to reduce memory footprint by ~50%
+                    const pageBlob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', qualityOpt));
+                    canvas.width = 0;
+                    canvas.height = 0;
+
+                    zip.file(`${outName}-halaman-${i}.jpg`, pageBlob);
+
+                    // Yield execution every page so Garbage Collector reclaims memory
+                    await new Promise(r => setTimeout(r, 10));
                 }
 
+                btnConvertPdf.innerHTML = `<div class="loading-spinner"></div> Membuat file ZIP...`;
                 const zipBlob = await zip.generateAsync({ type: 'blob' });
                 if (!outName.endsWith('.zip')) outName += '.zip';
 
@@ -752,7 +857,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         compressPageGrid.innerHTML = '';
 
-        for (let i = 1; i <= currentCompressDoc.numPages; i++) {
+        const maxThumbnails = Math.min(currentCompressDoc.numPages, 36);
+
+        for (let i = 1; i <= maxThumbnails; i++) {
             const card = document.createElement('div');
             card.className = 'pdf-page-card';
             card.innerHTML = `
@@ -776,6 +883,22 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (err) {
                 console.error(`Gagal merender pratinjau halaman ${i}:`, err);
             }
+
+            if (i % 5 === 0) {
+                await new Promise(r => setTimeout(r, 10));
+            }
+        }
+
+        if (currentCompressDoc.numPages > 36) {
+            const moreBadge = document.createElement('div');
+            moreBadge.className = 'pdf-page-card';
+            moreBadge.style.justifyContent = 'center';
+            moreBadge.style.color = 'var(--text-secondary)';
+            moreBadge.style.fontSize = '0.85rem';
+            moreBadge.style.textAlign = 'center';
+            moreBadge.style.padding = '1.5rem 0.5rem';
+            moreBadge.innerHTML = `+${currentCompressDoc.numPages - 36} halaman lagi<br><span style="font-size:0.75rem; opacity:0.8;">Semua akan tetap dikompres</span>`;
+            compressPageGrid.appendChild(moreBadge);
         }
     }
 
@@ -831,6 +954,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }).promise;
 
                 const pageImgData = canvas.toDataURL('image/jpeg', qualityOpt);
+                canvas.width = 0;
+                canvas.height = 0;
+
                 const pageWMm = viewport.width * pxToMm;
                 const pageHMm = viewport.height * pxToMm;
                 const orientation = pageWMm > pageHMm ? 'l' : 'p';
@@ -846,8 +972,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 doc.addImage(pageImgData, 'JPEG', 0, 0, pageWMm, pageHMm);
+
+                // Yield control to Garbage Collector
+                await new Promise(r => setTimeout(r, 10));
             }
 
+            btnCompressPdf.innerHTML = `<div class="loading-spinner"></div> Menyiapkan file kompresi...`;
             const compressedBlob = doc.output('blob');
             const originalSize = currentCompressFile.size;
             const newSize = compressedBlob.size;
