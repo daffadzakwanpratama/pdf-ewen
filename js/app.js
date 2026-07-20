@@ -55,4 +55,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (typeof clearTiktokState === 'function') clearTiktokState();
         });
     });
+
+    // Clear Cache Button Event Listener
+    const btnClearCache = document.getElementById('btn-clear-cache');
+    if (btnClearCache) {
+        btnClearCache.addEventListener('click', () => {
+            if (typeof clearAppCache === 'function') {
+                clearAppCache();
+            } else {
+                window.location.reload(true);
+            }
+        });
+    }
 });

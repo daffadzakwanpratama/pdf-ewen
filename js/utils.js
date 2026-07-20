@@ -166,3 +166,35 @@ async function downloadFileFromUrl(url, filename) {
     link.click();
     document.body.removeChild(link);
 }
+
+// Clear Cache Storage, Unregister Service Workers & Hard Reload Page
+async function clearAppCache() {
+    showToast('Membersihkan cache browser & memperbarui aplikasi...');
+
+    try {
+        if ('serviceWorker' in navigator) {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (let registration of registrations) {
+                await registration.unregister();
+            }
+        }
+
+        if ('caches' in window) {
+            const cacheNames = await caches.keys();
+            await Promise.all(cacheNames.map(name => caches.delete(name)));
+        }
+
+        localStorage.clear();
+        sessionStorage.clear();
+
+        showToast('Cache berhasil dibersihkan! Memuat ulang...');
+
+        setTimeout(() => {
+            const cleanUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;
+            window.location.href = cleanUrl + '?refresh=' + Date.now();
+        }, 600);
+    } catch (e) {
+        console.error('Error clearing cache:', e);
+        window.location.reload(true);
+    }
+}
