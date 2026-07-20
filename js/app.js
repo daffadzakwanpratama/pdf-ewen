@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const imageToPdfView = document.getElementById('image-to-pdf-view');
     const pdfToImageView = document.getElementById('pdf-to-image-view');
     const compressPdfView = document.getElementById('compress-pdf-view');
+    const tiktokDownloaderView = document.getElementById('tiktok-downloader-view');
 
     const toast = document.getElementById('toast-notification');
     const toastMessage = document.getElementById('toast-message');
@@ -37,6 +38,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 pdfToImageView.style.display = 'flex';
             } else if (tool === 'compress-pdf') {
                 compressPdfView.style.display = 'flex';
+            } else if (tool === 'tiktok-downloader') {
+                tiktokDownloaderView.style.display = 'flex';
             }
         });
     });
@@ -55,6 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
             clearImageToPdfState();
             clearPdfToImageState();
             clearCompressPdfState();
+            clearTiktokState();
         });
     });
 
@@ -1004,7 +1008,128 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- 5. MODULE: CROP & PERSPECTIVE TRANSFORM (DOCUMENT SCANNER) ---
+    // --- 5. MODULE: TIKTOK DOWNLOADER ---
+    const tiktokUrlInput = document.getElementById('tiktok-url-input');
+    const btnFetchTiktok = document.getElementById('btn-fetch-tiktok');
+    const tiktokResultCard = document.getElementById('tiktok-result-card');
+    const tiktokAuthorAvatar = document.getElementById('tiktok-author-avatar');
+    const tiktokAuthorName = document.getElementById('tiktok-author-name');
+    const tiktokVideoTitle = document.getElementById('tiktok-video-title');
+    const tiktokCoverPreview = document.getElementById('tiktok-cover-preview');
+    const btnDownloadTiktokHd = document.getElementById('btn-download-tiktok-hd');
+    const btnDownloadTiktokSd = document.getElementById('btn-download-tiktok-sd');
+    const btnDownloadTiktokAudio = document.getElementById('btn-download-tiktok-audio');
+
+    let currentTiktokData = null;
+
+    function clearTiktokState() {
+        if (tiktokUrlInput) tiktokUrlInput.value = '';
+        if (tiktokResultCard) tiktokResultCard.style.display = 'none';
+        currentTiktokData = null;
+    }
+
+    async function downloadFileFromUrl(url, filename) {
+        if (!url || url === '#') {
+            showToast('Link download tidak tersedia.');
+            return;
+        }
+        showToast('Memulai pengunduhan file...');
+        try {
+            const res = await fetch(url);
+            const blob = await res.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+        } catch (err) {
+            // Fallback: Open URL directly in new tab if CORS prevents blob fetch
+            window.open(url, '_blank');
+        }
+    }
+
+    if (btnFetchTiktok) {
+        btnFetchTiktok.addEventListener('click', async () => {
+            const rawUrl = tiktokUrlInput.value.trim();
+            if (!rawUrl) {
+                showToast('Silakan masukkan link video TikTok terlebih dahulu.');
+                return;
+            }
+
+            if (!rawUrl.includes('tiktok.com')) {
+                showToast('Link tidak valid. Masukkan link video TikTok yang benar.');
+                return;
+            }
+
+            const originalBtnText = btnFetchTiktok.innerHTML;
+            btnFetchTiktok.disabled = true;
+            btnFetchTiktok.innerHTML = `<div class="loading-spinner"></div> Memproses Video...`;
+            tiktokResultCard.style.display = 'none';
+
+            try {
+                const apiUrl = `https://www.tikwm.com/api/?url=${encodeURIComponent(rawUrl)}`;
+                const response = await fetch(apiUrl);
+                const result = await response.json();
+
+                if (result.code === 0 && result.data) {
+                    const data = result.data;
+                    currentTiktokData = data;
+
+                    tiktokAuthorAvatar.src = data.author.avatar || data.author.avatar_thumb || '';
+                    tiktokAuthorName.textContent = data.author.nickname ? `${data.author.nickname} (@${data.author.unique_id})` : 'TikTok Creator';
+                    tiktokVideoTitle.textContent = data.title || 'Video TikTok';
+                    tiktokCoverPreview.src = data.cover || data.origin_cover || '';
+
+                    tiktokResultCard.style.display = 'flex';
+                    showToast('Video berhasil ditemukan!');
+                } else {
+                    showToast(result.msg || 'Gagal mengambil video TikTok. Pastikan link publik & valid.');
+                }
+            } catch (error) {
+                console.error(error);
+                showToast('Terjadi kesalahan jaringan saat mengambil video TikTok.');
+            } finally {
+                btnFetchTiktok.disabled = false;
+                btnFetchTiktok.innerHTML = originalBtnText;
+                lucide.createIcons();
+            }
+        });
+    }
+
+    if (btnDownloadTiktokHd) {
+        btnDownloadTiktokHd.addEventListener('click', () => {
+            if (!currentTiktokData) return;
+            const hdUrl = currentTiktokData.hdplay ? `https://www.tikwm.com${currentTiktokData.hdplay}` : (currentTiktokData.play ? `https://www.tikwm.com${currentTiktokData.play}` : null);
+            const filename = `${(currentTiktokData.title || 'tiktok-video').replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 30)}-hd.mp4`;
+            downloadFileFromUrl(hdUrl, filename);
+        });
+    }
+
+    if (btnDownloadTiktokSd) {
+        btnDownloadTiktokSd.addEventListener('click', () => {
+            if (!currentTiktokData) return;
+            const sdUrl = currentTiktokData.play ? `https://www.tikwm.com${currentTiktokData.play}` : null;
+            const filename = `${(currentTiktokData.title || 'tiktok-video').replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 30)}.mp4`;
+            downloadFileFromUrl(sdUrl, filename);
+        });
+    }
+
+    if (btnDownloadTiktokAudio) {
+        btnDownloadTiktokAudio.addEventListener('click', () => {
+            if (!currentTiktokData) return;
+            let musicUrl = currentTiktokData.music;
+            if (musicUrl && !musicUrl.startsWith('http')) {
+                musicUrl = `https://www.tikwm.com${musicUrl}`;
+            }
+            const filename = `${(currentTiktokData.title || 'tiktok-audio').replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 30)}.mp3`;
+            downloadFileFromUrl(musicUrl, filename);
+        });
+    }
+
+    // --- 6. MODULE: CROP & PERSPECTIVE TRANSFORM (DOCUMENT SCANNER) ---
     // State Variables for Crop Modal
     let activeEditorImageId = null;
     let editorImgElement = null;

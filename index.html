@@ -70,6 +70,21 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Section 2: Alat Download Media -->
+                <div class="dashboard-section">
+                    <h3 class="section-title"><i data-lucide="video"></i> Alat Download Media</h3>
+                    <div class="cards-grid">
+                        <div class="card card-active" data-tool="tiktok-downloader">
+                            <div class="card-icon-wrapper orange">
+                                <i data-lucide="clapperboard"></i>
+                            </div>
+                            <h4>TikTok Downloader</h4>
+                            <p>Download video TikTok tanpa watermark kualitas HD</p>
+                            <span class="badge badge-active">Gratis & Instan</span>
+                        </div>
+                    </div>
+                </div>
             </main>
         </div>
 
@@ -435,6 +450,69 @@
                         <button id="btn-compress-pdf" class="btn btn-primary btn-block btn-lg" disabled>
                             <i data-lucide="file-archive"></i> Kompres PDF Sekarang
                         </button>
+                    </div>
+                </section>
+            </main>
+        </div>
+
+        <!-- View 5: TikTok Downloader Tool -->
+        <div id="tiktok-downloader-view" class="spa-view" style="display: none;">
+            <header class="tool-header">
+                <button class="btn btn-secondary btn-back">
+                    <i data-lucide="arrow-left"></i> Beranda
+                </button>
+                <div class="tool-title">
+                    <i data-lucide="clapperboard" class="tool-title-icon orange" style="color: #f97316;"></i>
+                    <h2>TikTok Downloader</h2>
+                </div>
+            </header>
+
+            <main class="app-main" style="grid-template-columns: 1fr;">
+                <section class="panel" style="max-width: 680px; margin: 0 auto; width: 100%;">
+                    <div class="config-header" style="border-bottom: none; padding-bottom: 0;">
+                        <i data-lucide="video" class="section-icon" style="color: #f97316;"></i>
+                        <h2>Download Video TikTok</h2>
+                    </div>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;">
+                        Masukkan link video TikTok untuk mengunduh video tanpa watermark dengan kualitas HD original.
+                    </p>
+
+                    <div class="form-group" style="margin-bottom: 1.25rem;">
+                        <label for="tiktok-url-input">URL Link Video TikTok</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="tiktok-url-input" placeholder="Contoh: https://vt.tiktok.com/ZS... atau https://www.tiktok.com/@user/video/..." style="padding-right: 1rem;">
+                        </div>
+                    </div>
+
+                    <button id="btn-fetch-tiktok" class="btn btn-primary btn-block btn-lg" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, #f97316 0%, #ef4444 100%);">
+                        <i data-lucide="search"></i> Cari & Unduh Video
+                    </button>
+
+                    <!-- Result Area -->
+                    <div id="tiktok-result-card" style="display: none; background-color: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.5rem; flex-direction: column; gap: 1.25rem; animation: fadeIn 0.3s ease;">
+                        <div style="display: flex; gap: 1rem; align-items: center;">
+                            <img id="tiktok-author-avatar" src="" alt="Avatar" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border-color); flex-shrink: 0;">
+                            <div style="overflow: hidden; flex-grow: 1;">
+                                <div id="tiktok-author-name" style="font-weight: 700; font-size: 1rem; color: var(--text-primary);">@author</div>
+                                <div id="tiktok-video-title" style="font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Judul Video</div>
+                            </div>
+                        </div>
+
+                        <div style="position: relative; width: 100%; border-radius: var(--radius-md); overflow: hidden; max-height: 320px; background: #000; text-align: center;">
+                            <img id="tiktok-cover-preview" src="" alt="Cover" style="max-height: 320px; max-width: 100%; object-fit: contain;">
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                            <button id="btn-download-tiktok-hd" class="btn btn-primary btn-lg" style="width: 100%; background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                                <i data-lucide="download"></i> Download Video HD (Tanpa Watermark)
+                            </button>
+                            <button id="btn-download-tiktok-sd" class="btn btn-secondary" style="width: 100%; justify-content: center;">
+                                <i data-lucide="film"></i> Download Video Normal
+                            </button>
+                            <button id="btn-download-tiktok-audio" class="btn btn-secondary" style="width: 100%; justify-content: center;">
+                                <i data-lucide="music"></i> Download Audio MP3
+                            </button>
+                        </div>
                     </div>
                 </section>
             </main>
