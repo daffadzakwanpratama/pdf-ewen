@@ -1030,26 +1030,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function formatTikwmUrl(url) {
         if (!url) return null;
-        if (url.startsWith('http://') || url.startsWith('https://')) {
-            return url;
+        let str = String(url).trim();
+
+        // 1. Fix malformed protocols like "https//", "http//", "https:/", "http:/"
+        str = str.replace(/^https?:\/\//i, 'https://');
+        str = str.replace(/^https?\/\//i, 'https://');
+        str = str.replace(/^https?:\//i, 'https://');
+
+        if (str.startsWith('https://') || str.startsWith('http://')) {
+            return str;
         }
-        if (url.startsWith('//')) {
-            return `https:${url}`;
+
+        // 2. Fix protocol-relative URLs like "//v19.tiktokcdn.com/..."
+        if (str.startsWith('//')) {
+            return 'https:' + str;
         }
-        if (url.startsWith('/')) {
-            return `https://www.tikwm.com${url}`;
+
+        // 3. If it starts with a domain name like "v19.tiktokcdn.com/..." or "v16-web-cdn.tikwm.com/..."
+        if (/^[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+/.test(str)) {
+            return 'https://' + str;
         }
-        return `https://www.tikwm.com/${url}`;
+
+        // 4. Relative paths like "/video/media/..."
+        if (str.startsWith('/')) {
+            return 'https://www.tikwm.com' + str;
+        }
+
+        return 'https://www.tikwm.com/' + str;
     }
 
     async function downloadFileFromUrl(url, filename) {
-        if (!url || url === '#') {
+        const targetUrl = formatTikwmUrl(url);
+        if (!targetUrl) {
             showToast('Link download tidak tersedia.');
             return;
         }
-        showToast('Memulai pengunduhan file...');
+
+        showToast('Memulai pengunduhan video...');
+
+        // Try downloading as Blob via client fetch first
         try {
-            const res = await fetch(url);
+            const res = await fetch(targetUrl);
+            if (!res.ok) throw new Error('Fetch failed');
             const blob = await res.blob();
             const blobUrl = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -1058,11 +1080,21 @@ document.addEventListener('DOMContentLoaded', () => {
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-            setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 3000);
+            return;
         } catch (err) {
-            // Fallback: Open URL directly in new tab if CORS prevents blob fetch
-            window.open(url, '_blank');
+            console.log('Blob fetch bypassed, using direct download anchor', err);
         }
+
+        // Fallback: Direct anchor link click with target="_blank"
+        const link = document.createElement('a');
+        link.href = targetUrl;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 
     if (btnFetchTiktok) {
@@ -1084,23 +1116,57 @@ document.addEventListener('DOMContentLoaded', () => {
             tiktokResultCard.style.display = 'none';
 
             try {
-                const apiUrl = `https://www.tikwm.com/api/?url=${encodeURIComponent(rawUrl)}`;
-                const response = await fetch(apiUrl);
-                const result = await response.json();
+                let data = null;
 
-                if (result.code === 0 && result.data) {
-                    const data = result.data;
+                // Attempt 1: TikWM API
+                try {
+                    const apiUrl = `https://www.tikwm.com/api/?url=${encodeURIComponent(rawUrl)}`;
+                    const response = await fetch(apiUrl);
+                    const result = await response.json();
+                    if (result.code === 0 && result.data) {
+                        data = result.data;
+                    }
+                } catch (e) {
+                    console.warn('Primary TikWM API failed, trying fallback', e);
+                }
+
+                // Attempt 2: Tiklydown API (Fallback)
+                if (!data) {
+                    try {
+                        const fallbackUrl = `https://api.tiklydown.eu.org/api/download?url=${encodeURIComponent(rawUrl)}`;
+                        const response = await fetch(fallbackUrl);
+                        const result = await response.json();
+                        if (result && (result.video || result.url)) {
+                            data = {
+                                title: result.title || 'Video TikTok',
+                                cover: result.cover || result.dynamic_cover,
+                                play: result.video ? (result.video.noWatermark || result.video.watermark) : result.url,
+                                hdplay: result.video ? result.video.noWatermark : result.url,
+                                music: result.music ? result.music.play_url : null,
+                                author: {
+                                    nickname: result.author ? result.author.name : 'TikTok Creator',
+                                    unique_id: result.author ? result.author.unique_id : '',
+                                    avatar: result.author ? result.author.avatar : ''
+                                }
+                            };
+                        }
+                    } catch (e2) {
+                        console.warn('Fallback Tiklydown API failed', e2);
+                    }
+                }
+
+                if (data) {
                     currentTiktokData = data;
 
-                    tiktokAuthorAvatar.src = formatTikwmUrl(data.author.avatar || data.author.avatar_thumb) || '';
-                    tiktokAuthorName.textContent = data.author.nickname ? `${data.author.nickname} (@${data.author.unique_id})` : 'TikTok Creator';
+                    tiktokAuthorAvatar.src = formatTikwmUrl(data.author?.avatar || data.author?.avatar_thumb) || '';
+                    tiktokAuthorName.textContent = data.author?.nickname ? `${data.author.nickname} (@${data.author.unique_id || ''})` : 'TikTok Creator';
                     tiktokVideoTitle.textContent = data.title || 'Video TikTok';
                     tiktokCoverPreview.src = formatTikwmUrl(data.cover || data.origin_cover) || '';
 
                     tiktokResultCard.style.display = 'flex';
                     showToast('Video berhasil ditemukan!');
                 } else {
-                    showToast(result.msg || 'Gagal mengambil video TikTok. Pastikan link publik & valid.');
+                    showToast('Gagal mengambil video TikTok. Pastikan link publik & valid.');
                 }
             } catch (error) {
                 console.error(error);
