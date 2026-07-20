@@ -1028,6 +1028,20 @@ document.addEventListener('DOMContentLoaded', () => {
         currentTiktokData = null;
     }
 
+    function formatTikwmUrl(url) {
+        if (!url) return null;
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+            return url;
+        }
+        if (url.startsWith('//')) {
+            return `https:${url}`;
+        }
+        if (url.startsWith('/')) {
+            return `https://www.tikwm.com${url}`;
+        }
+        return `https://www.tikwm.com/${url}`;
+    }
+
     async function downloadFileFromUrl(url, filename) {
         if (!url || url === '#') {
             showToast('Link download tidak tersedia.');
@@ -1078,10 +1092,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     const data = result.data;
                     currentTiktokData = data;
 
-                    tiktokAuthorAvatar.src = data.author.avatar || data.author.avatar_thumb || '';
+                    tiktokAuthorAvatar.src = formatTikwmUrl(data.author.avatar || data.author.avatar_thumb) || '';
                     tiktokAuthorName.textContent = data.author.nickname ? `${data.author.nickname} (@${data.author.unique_id})` : 'TikTok Creator';
                     tiktokVideoTitle.textContent = data.title || 'Video TikTok';
-                    tiktokCoverPreview.src = data.cover || data.origin_cover || '';
+                    tiktokCoverPreview.src = formatTikwmUrl(data.cover || data.origin_cover) || '';
 
                     tiktokResultCard.style.display = 'flex';
                     showToast('Video berhasil ditemukan!');
@@ -1102,7 +1116,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnDownloadTiktokHd) {
         btnDownloadTiktokHd.addEventListener('click', () => {
             if (!currentTiktokData) return;
-            const hdUrl = currentTiktokData.hdplay ? `https://www.tikwm.com${currentTiktokData.hdplay}` : (currentTiktokData.play ? `https://www.tikwm.com${currentTiktokData.play}` : null);
+            const raw = currentTiktokData.hdplay || currentTiktokData.play;
+            const hdUrl = formatTikwmUrl(raw);
             const filename = `${(currentTiktokData.title || 'tiktok-video').replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 30)}-hd.mp4`;
             downloadFileFromUrl(hdUrl, filename);
         });
@@ -1111,7 +1126,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnDownloadTiktokSd) {
         btnDownloadTiktokSd.addEventListener('click', () => {
             if (!currentTiktokData) return;
-            const sdUrl = currentTiktokData.play ? `https://www.tikwm.com${currentTiktokData.play}` : null;
+            const sdUrl = formatTikwmUrl(currentTiktokData.play);
             const filename = `${(currentTiktokData.title || 'tiktok-video').replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 30)}.mp4`;
             downloadFileFromUrl(sdUrl, filename);
         });
@@ -1120,10 +1135,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnDownloadTiktokAudio) {
         btnDownloadTiktokAudio.addEventListener('click', () => {
             if (!currentTiktokData) return;
-            let musicUrl = currentTiktokData.music;
-            if (musicUrl && !musicUrl.startsWith('http')) {
-                musicUrl = `https://www.tikwm.com${musicUrl}`;
-            }
+            const musicUrl = formatTikwmUrl(currentTiktokData.music);
             const filename = `${(currentTiktokData.title || 'tiktok-audio').replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 30)}.mp3`;
             downloadFileFromUrl(musicUrl, filename);
         });
